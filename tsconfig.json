@@ -5,15 +5,19 @@
     "lib": [
       "es2015",
       "dom",
-      "esnext"
+      "esnext",
     ],
+    "esModuleInterop": true,
     "declaration": true,
-    "sourceMap": true,
+    "declarationDir": "types",
+    "declarationMap": true,
     "outDir": "./dist",
     "strict": false,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "importHelpers": true
   },
   "files": [
     "./node_modules/@types/node/index.d.ts",
