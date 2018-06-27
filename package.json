@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "description": "Simple node.js job scheduler with DB Storage.",
   "main": "./dist/main.js",
-  "type": "",
+  "types": "./types/main.d.ts",
   "scripts": {
     "cleanup": "shx rm -rf bundles esm5 esm2015 fesm types coverage docs package dist",
+    "prebuild": "yarn cleanup",
     "build": "yarn cleanup && tsc && tsc --target es2018 --outDir esm2015 ",
+    "prepublish": "yarn build",
     "test": "jasmine-ts \"./spec/**/*.spec.ts\"",
     "docs": "typedoc -p . --theme minimal --target 'es6' --excludeNotExported --excludePrivate --ignoreCompilerErrors --exclude \"**/spec/**/*.*\" --out docs src/",
     "release": "standard-version"
@@ -45,6 +47,7 @@
     "jasmine-ts": "^0.2.1",
     "shx": "^0.3.1",
     "standard-version": "^4.4.0",
+    "tslib": "^1.9.3",
     "typedoc": "^0.11.1",
     "typescript": "^2.9.2",
     "typescript-eslint-parser": "15.0.1"
