@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "lib": [
+      "es2015",
+      "dom",
+      "esnext"
+    ],
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "strict": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "moduleResolution": "node"
+  },
+  "files": [
+    "./node_modules/@types/node/index.d.ts",
+    "./node_modules/@types/mysql/index.d.ts",
+    "./node_modules/@types/jasmine/index.d.ts"
+  ],
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

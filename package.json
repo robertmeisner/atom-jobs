@@ -1,0 +1,52 @@
+{
+  "name": "atom-jobs",
+  "version": "0.1.0",
+  "description": "Simple node.js job scheduler with DB Storage.",
+  "main": "./dist/main.js",
+  "type": "",
+  "scripts": {
+    "cleanup": "shx rm -rf bundles esm5 esm2015 fesm types coverage docs package dist",
+    "build": "yarn cleanup && tsc && tsc --target es2018 --outDir esm2015 ",
+    "test": "jasmine-ts \"./spec/**/*.spec.ts\"",
+    "docs": "typedoc -p . --theme minimal --target 'es6' --excludeNotExported --excludePrivate --ignoreCompilerErrors --exclude \"**/spec/**/*.*\" --out docs src/",
+    "release": "standard-version"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/robertmeisner/atom-jobs.git"
+  },
+  "keywords": [
+    "cron",
+    "crontab",
+    "job",
+    "jobs",
+    "task",
+    "tasks",
+    "scheduler",
+    "runner",
+    "agenda"
+  ],
+  "author": "Robert Meisner <robert@catchit.pl> (https://catchit.pl)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/robertmeisner/atom-jobs/issues"
+  },
+  "homepage": "https://github.com/robertmeisner/atom-jobs#readme",
+  "dependencies": {
+    "crypto": "^1.0.1",
+    "date.js": "^0.3.3",
+    "mysql": "^2.15.0"
+  },
+  "devDependencies": {
+    "@types/jasmine": "^2.8.8",
+    "@types/mysql": "types/mysql",
+    "@types/node": "^10.3.6",
+    "jasmine": "^3.1.0",
+    "jasmine-ts": "^0.2.1",
+    "shx": "^0.3.1",
+    "standard-version": "^4.4.0",
+    "typedoc": "^0.11.1",
+    "typescript": "^2.9.2",
+    "typescript-eslint-parser": "15.0.1"
+  }
+}
