@@ -10,7 +10,6 @@
     "esModuleInterop": true,
     "declaration": true,
     "declarationDir": "types",
-    "declarationMap": true,
     "outDir": "./dist",
     "strict": false,
     "strictNullChecks": false,
