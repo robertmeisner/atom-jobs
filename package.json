@@ -1,6 +1,6 @@
 {
   "name": "atom-jobs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Simple node.js job scheduler with DB Storage.",
   "main": "./dist/main.js",
   "types": "./types/main.d.ts",
