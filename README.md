@@ -4,3 +4,36 @@
 # atom-jobs
 Simple node.js job scheduler with DB Storage. 
 
+## Installation 
+```sh
+npm install atom-jobs --save
+yarn add atom-jobs
+bower install atom-jobs --save
+```
+## Usage
+### Javascript
+```javascript
+var atomJobs = require('atom-jobs');
+//TODO
+```
+```sh
+Output should be '...'
+```
+### TypeScript
+```typescript
+import {  } from 'atom-jobs';
+//TODO
+```
+```sh
+Output should be '...'
+```
+### AMD
+```javascript
+define(function(require,exports,module){
+  var atomJobs = require('atom-jobs');
+});
+```
+## Test 
+```sh
+npm run test
+```
