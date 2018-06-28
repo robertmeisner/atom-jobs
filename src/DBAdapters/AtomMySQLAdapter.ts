@@ -4,7 +4,7 @@ import { AtomJob } from '../AtomJob';
 import { promisify } from 'util';
 import { timingSafeEqual } from 'crypto';
 var mysql = require('mysql');
-export class MySQLAdapter implements AtomDBAdapter {
+export class AtomMySQLAdapter implements AtomDBAdapter {
     private pool;
     private UPDATE_INSERT_QUERY_PARTIAL = 'name=?,plannedString=?,status=?,started=?,timeElapsed=?,lastErrorJSON=?,schedulerID=?';
     constructor(connection: object) {
