@@ -11,6 +11,7 @@ config/
 **/*.spec.js
 **/*.test.js
 __tests__
+spec
 coverage
 node_modules
 src
