@@ -1,5 +1,5 @@
-import { AtomJob, AtomJobStatus } from "../src/AtomJob";
-import { AtomSchedulerError } from "../src/AtomSchedulerError";
+import { AtomJob, AtomJobStatus } from "../../src/AtomJob";
+import { AtomSchedulerError } from "../../src/AtomSchedulerError";
 
 describe("Job", () => {
     let job: AtomJob;

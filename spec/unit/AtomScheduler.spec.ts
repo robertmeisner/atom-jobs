@@ -1,7 +1,7 @@
 import "jasmine";
-import { AtomDBAdapter } from "../src/AtomDBAdapter";
-import { AtomJob, AtomJobStatus } from "../src/AtomJob";
-import { AtomScheduler } from "../src/AtomScheduler";
+import { AtomDBAdapter } from "../../src/AtomDBAdapter";
+import { AtomJob, AtomJobStatus } from "../../src/AtomJob";
+import { AtomScheduler } from "../../src/AtomScheduler";
 import { notDeepEqual } from "assert";
 
 const JOBS: Map<string, AtomJob> = new Map();
