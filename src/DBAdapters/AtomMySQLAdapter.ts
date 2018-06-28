@@ -8,7 +8,7 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
     private pool;
     private UPDATE_INSERT_QUERY_PARTIAL = 'name=?,plannedString=?,status=?,started=?,timeElapsed=?,lastErrorJSON=?,schedulerID=?';
     constructor(connection: object) {
-        if (this.pool) {
+        if (!this.pool) {
             this.pool = createPool(connection);
             this.pool.query = promisify(this.pool.query);
         }
