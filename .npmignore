@@ -13,6 +13,7 @@ config/
 __tests__
 spec
 coverage
+.nyc_output
 node_modules
 src
 docs
