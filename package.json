@@ -10,7 +10,7 @@
     "build": "tsc && tsc --target es2018 --outDir esm2015 ",
     "prepare": "yarn build",
     "test": "nyc -e .ts -x \"*.spec.ts\" jasmine-ts \"./spec/**/*.spec.ts\"",
-    "cover":"nyc report --reporter=text-lcov | coveralls",
+    "coverage":"nyc report --reporter=text-lcov | coveralls",
     "docs": "typedoc -p . --theme minimal --target 'es6' --excludeNotExported --excludePrivate --ignoreCompilerErrors --exclude \"**/spec/**/*.*\" --out docs src/",
     "release": "standard-version"
   },
