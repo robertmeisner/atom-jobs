@@ -1,6 +1,6 @@
 {
   "name": "atom-jobs",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Simple node.js job scheduler with DB Storage.",
   "main": "./dist/main.js",
   "typings": "./types/main.d.ts",
@@ -10,7 +10,7 @@
     "build": "tsc && tsc --target es2018 --outDir esm2015 ",
     "prepare": "yarn build",
     "test": "nyc -e .ts -x \"*.spec.ts\" jasmine-ts \"./spec/**/*.spec.ts\"",
-    "coverage":"nyc report --reporter=text-lcov | coveralls",
+    "coverage": "nyc report --reporter=text-lcov | coveralls",
     "docs": "typedoc -p . --theme minimal --target 'es6' --excludeNotExported --excludePrivate --ignoreCompilerErrors --exclude \"**/spec/**/*.*\" --out docs src/",
     "release": "standard-version"
   },
