@@ -8,7 +8,7 @@ install:
 script:
  - npm test
 before_install:
-  - mysql -e 'CREATE DATABASE IF NOT EXISTS test;'
+  - mysql -e 'CREATE DATABASE IF NOT EXISTS test;USE test;'
   - mysql -u root --password="" < src/DBAdapters/schema/MySQL.sql
  # Send coverage data to Coveralls
 after_success: npm run coverage
