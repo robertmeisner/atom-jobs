@@ -1,4 +1,3 @@
-
 import { AtomDBAdapter } from "./AtomDBAdapter";
 import { AtomScheduler } from "./AtomScheduler";
 import { AtomSchedulerError } from "./AtomSchedulerError";

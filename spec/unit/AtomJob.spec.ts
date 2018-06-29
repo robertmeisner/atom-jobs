@@ -1,10 +1,11 @@
 import { AtomJob, AtomJobStatus } from "../../src/AtomJob";
 import { AtomSchedulerError } from "../../src/AtomSchedulerError";
+require('../common');
 
 describe("Job", () => {
     let job: AtomJob;
     beforeEach(function () {
-        job = new AtomJob("TestJob", "tomorrow morning", true);
+        job = new AtomJob("TestJob", "tomorrow morning", true); 
 
         // spyOn(foo, 'setBar').and.callThrough();
     });
@@ -46,7 +47,7 @@ describe("Job", () => {
         expect(job.timeElapsed).toBeLessThan(jobTime);
 
     })
-    it("should be cancelable",  async (done) => {
+    it("should be cancelable",  async (done) => { 
         let token = { cancel: null };
         let p = job.perform(((job, data, cancelToken): Promise<boolean> => {
 

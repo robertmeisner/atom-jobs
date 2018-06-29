@@ -2,14 +2,20 @@ import "jasmine";
 import { AtomDBAdapter } from "../../src/AtomDBAdapter";
 import { AtomJob, AtomJobStatus } from "../../src/AtomJob";
 import { AtomScheduler } from "../../src/AtomScheduler";
-import { notDeepEqual } from "assert";
+require('../common');
 
 const JOBS: Map<string, AtomJob> = new Map();
 let DBMock: AtomDBAdapter = {
 
+    deleteJob(jobName: string, force?: boolean): Promise<boolean> {
+        return null;
+    },
     saveJob(job: AtomJob): Promise<AtomJob> {
         JOBS.set(job.name, job);
         return Promise.resolve(job);
+    },
+    updateJob(job: AtomJob | any): Promise<AtomJob> {
+        return null;
     },
     getJob(name: string): Promise<AtomJob> {
         return Promise.resolve(JOBS.get(name));
@@ -19,6 +25,18 @@ let DBMock: AtomDBAdapter = {
     },
     getAllJobs(): Promise<AtomJob[]> {
         return null;//JOBS.values().;
+    },
+    isJobLocked(jobName: string): Promise<boolean> {
+        return null;
+    },
+    unlockJob(jobName: string): Promise<boolean> {
+        return null;
+    },
+    lockJob(jobName: string): Promise<boolean> {
+        return null;
+    },
+    jobExists(jobName: string): Promise<boolean> {
+        return null;
     }
 };;
 let JobMock: AtomJob = AtomJob.create({
@@ -62,7 +80,7 @@ describe("Scheduler", () => {
         expect(job).toBeTruthy();
         expect(job.name).toEqual("JonBame");
         expect(scheduler.jobDefinitions.has("JonBame"))
-        done(); 
+        done();
         //expect(DBMock.saveJob).toHaveBeenCalled();
 
     });

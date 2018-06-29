@@ -7,7 +7,6 @@
       "dom",
       "esnext"
     ],
-    "esModuleInterop": true,
     "declaration": true,
     "declarationDir": "types",
     "outDir": "./dist",
@@ -15,8 +14,8 @@
     "strictNullChecks": false,
     "strictFunctionTypes": false,
     "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "importHelpers": true
+    "removeComments": true,
+    "noImplicitAny": false
   },
   "files": [
     "./node_modules/@types/node/index.d.ts",

@@ -1,10 +1,14 @@
 language : node_js
 node_js :
  - stable
+services:
+  - mysql
 install:
  - npm install
 script:
  - npm test
-
+before_install:
+  - mysql -e 'CREATE DATABASE IF NOT EXISTS test;'
+  - mysql -u root --password="" < src/DBAdapters/schema/MySQL.sql
  # Send coverage data to Coveralls
 after_success: npm run coverage

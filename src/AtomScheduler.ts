@@ -25,16 +25,15 @@ export class AtomScheduler {
     private timer;
     /**
      * Defines job
+     * //TODO pobieranie i nadpisywanie zablokowanych???????
+     * 
      * @param jobName 
      * @param func 
      */
     async createJob(jobName, when: string, func?: (job: AtomJob, data?: {}) => Promise<boolean>, data?: object) {
-        let job: AtomJob = await this.dBAdapter.getJob(jobName);
-        if (!job) {
-            job = new AtomJob(jobName, when);
-            job = await this.dBAdapter.saveJob(job);
-        }
-        if (func)
+        let job: AtomJob = new AtomJob(jobName, when);
+        job = await this.dBAdapter.saveJob(job);
+        if (func || data)
             job = await this.defineJob(jobName, func, data);
         return job;
     }
