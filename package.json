@@ -10,6 +10,7 @@
     "build": "tsc && tsc --target es2018 --outDir esm2015 ",
     "prepare": "yarn build",
     "test": "nyc -e .ts -x \"*.spec.ts\" jasmine-ts \"./spec/**/*.spec.ts\"",
+    "test-raw": "jasmine-ts \"./spec/**/*.spec.ts\"",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "docs": "typedoc -p . --theme minimal --target 'es6' --excludeNotExported --excludePrivate --ignoreCompilerErrors --exclude \"**/spec/**/*.*\" --out docs src/",
     "release": "standard-version"
@@ -38,22 +39,24 @@
   "dependencies": {
     "crypto": "^1.0.1",
     "date.js": "^0.3.3",
-    "mysql": "^2.15.0",
     "tslib": "1.9.3"
   },
   "devDependencies": {
     "@types/jasmine": "^2.8.8",
     "@types/mysql": "types/mysql",
-    "@types/node": "^10.3.6",
+    "@types/node": "^10.5.1",
     "coveralls": "3.0.1",
     "istanbul": "0.4.5",
     "jasmine": "^3.1.0",
     "jasmine-ts": "^0.2.1",
+    "knex": "0.14.6",
+    "mysql": "2.15.0",
     "nyc": "12.0.2",
+    "objection": "1.1.10",
     "shx": "^0.3.1",
     "standard-version": "^4.4.0",
     "typedoc": "^0.11.1",
     "typescript": "^2.9.2",
-    "typescript-eslint-parser": "15.0.1"
+    "typescript-eslint-parser": "16.0.1"
   }
 }
