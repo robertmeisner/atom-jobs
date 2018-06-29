@@ -42,7 +42,6 @@ export class AtomJob {
     public schedulerID?: string;
     public timeout: number = 10 * 60 * 1000;
     public isRecurring = true;
-    private dBAdapter: AtomDBAdapter;
 
 
     constructor(name: string, when: string, isRecurring: boolean = true) {
