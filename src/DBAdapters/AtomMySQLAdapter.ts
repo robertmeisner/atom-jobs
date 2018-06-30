@@ -40,10 +40,10 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
     }
 
     async updateJob(job: AtomJob | any): Promise<AtomJob> {
-        if (await this.jobExists(job.name)) {
+        if (!await this.jobExists(job.name)) {
             throw new AtomSchedulerError("You can update only existing job. " + job.name + " doesn't exist.");
         }
-        const numUpdated = await AtomJobModel.query().patch(job as Partial<AtomJobModel>)
+        const numUpdated = await AtomJobModel.query().patch(job as Partial<AtomJobModel>).where('name', job.name).limit(1);
         if (numUpdated)
             return this.getJob(job.name);
         else

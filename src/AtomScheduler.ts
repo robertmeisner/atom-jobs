@@ -40,7 +40,7 @@ export class AtomScheduler {
     async defineJob(jobName: string, func?: (job: AtomJob, data?: any, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob> {
         let job: AtomJob = await this.dBAdapter.getJob(jobName);
         if (!job) {
-            throw new AtomSchedulerError("No job " + jobName + " created. Create the job first.")
+            throw new AtomSchedulerError("Job " + jobName + " could not be defined. Create the job first.")
         }
         let cancelToken: { cancel: Function } = { cancel: null };
         this.jobDefinitions.set(jobName, { func: func, data: data, cancelToken: cancelToken })
