@@ -1,7 +1,5 @@
-import { RowDataPacket, createPool, OkPacket } from 'mysql';
 import { AtomDBAdapter } from '../AtomDBAdapter';
 import { AtomJob } from '../AtomJob';
-import { promisify } from 'util';
 import { AtomSchedulerError } from '../AtomSchedulerError';
 import { Model } from 'objection';
 // run the following command to install:
