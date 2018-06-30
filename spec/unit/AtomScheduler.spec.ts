@@ -15,7 +15,8 @@ let DBMock: AtomDBAdapter = {
         return Promise.resolve(job);
     },
     updateJob(job: AtomJob | any): Promise<AtomJob> {
-        return null;
+        console.log("####################",JOBS.get(job.name), job)
+        return Object.assign(JOBS.get(job.name), job);
     },
     getJob(name: string): Promise<AtomJob> {
         return Promise.resolve(JOBS.get(name));
@@ -25,18 +26,6 @@ let DBMock: AtomDBAdapter = {
     },
     getAllJobs(): Promise<AtomJob[]> {
         return Promise.resolve(Array.from(JOBS.values()));//JOBS.values().;
-    },
-    isJobLocked(jobName: string): Promise<boolean> {
-        return null;
-    },
-    unlockJob(jobName: string): Promise<boolean> {
-        return null;
-    },
-    lockJob(jobName: string): Promise<boolean> {
-        return null;
-    },
-    jobExists(jobName: string): Promise<boolean> {
-        return null;
     }
 };;
 let JobMock: AtomJob = AtomJob.create({
@@ -45,13 +34,16 @@ let JobMock: AtomJob = AtomJob.create({
     plannedString: "sunday night", timeElapsed: 0, timeout: 1111111111111
 });
 
+const job1Name = "job1Name";
+const job2Name = "job2Name";
 
 describe("Scheduler", () => {
     let scheduler: AtomScheduler = null;
     let scheduler2: AtomScheduler = null;
+    let saveJobSpy;
     beforeEach(function () {
         JOBS = new Map();
-        spyOn(DBMock, "saveJob").and.callThrough();
+        saveJobSpy = spyOn(DBMock, "saveJob").and.callThrough();
         scheduler = new AtomScheduler(DBMock);
         scheduler2 = new AtomScheduler(DBMock);
 
@@ -69,7 +61,6 @@ describe("Scheduler", () => {
         expect(job).toBeTruthy();
         expect(job.name).toEqual("JonBame");
         expect(DBMock.saveJob).toHaveBeenCalled();
-
     });
     it("should define new job", async (done) => {
         try {
@@ -95,6 +86,18 @@ describe("Scheduler", () => {
         done();
         //expect(DBMock.saveJob).toHaveBeenCalled();
 
+    });
+    it("should be able to block and unblock", async (done) => {
+        let job1 = await scheduler.createJob(job1Name, 'tomorrow');
+        let job2 = await scheduler.createJob(job2Name, 'tomorrow');
+        expect(await scheduler.isJobLocked(job1Name)).toBeFalsy();
+        let schedulerID = "sassddsf-as--A SasA-asAS";
+        await scheduler.lockJob(job1Name, schedulerID);
+        expect((await scheduler.getJob(job1Name)).schedulerID).toEqual(schedulerID);
+        expect((await scheduler.isJobLocked(job1Name))).toBeTruthy();
+        await scheduler.unlockJob(job1Name);
+        expect((await scheduler.isJobLocked(job1Name))).toBeFalsy();
+        done();
     });
     xit("should list all jobs", async (done) => {
         let job = await scheduler.createJob("L1", "sunday night");

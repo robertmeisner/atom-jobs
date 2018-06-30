@@ -69,6 +69,27 @@ export class AtomScheduler {
             }
         }, 60 * 1000);
     }
+    async isJobLocked(jobName: string): Promise<boolean> {
+        let result = await this.dBAdapter.getJob(jobName);
+        return Boolean(result['schedulerID']);
+    }
+    async unlockJob(jobName: string): Promise<boolean> {
+        let job = await this.dBAdapter.updateJob({ name: jobName, schedulerID: null });
+        return (Boolean(job));
+    }
+    async lockJob(jobName: string, schedulerID: string): Promise<boolean> {
+        let job = await this.dBAdapter.updateJob({ name: jobName, schedulerID: schedulerID });
+        return (Boolean(job));
+    }
+    async jobExists(jobName: string): Promise<boolean> {
+        return (Boolean(await this.dBAdapter.getJob(jobName)));
+    }
+    async getJob(jobName: string): Promise<AtomJob> {
+        return await this.dBAdapter.getJob(jobName);
+    }
+    async getAllJobs(){
+        
+    }
     start() {
         if (!this.started) {
             this.started = true;

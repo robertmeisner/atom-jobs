@@ -38,7 +38,7 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
     }
 
     async updateJob(job: AtomJob | any): Promise<AtomJob> {
-        if (!await this.jobExists(job.name)) {
+        if (!await this.getJob(job.name)) {
             throw new AtomSchedulerError("You can update only existing job. " + job.name + " doesn't exist.");
         }
         const numUpdated = await AtomJobModel.query().patch(job as Partial<AtomJobModel>).where('name', job.name).limit(1);
@@ -49,7 +49,7 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
     }
     async deleteJob(jobName: string, force?: boolean): Promise<boolean> {
         let jobExists: AtomJob = await this.getJob(jobName);
-        if (!this.jobExists(jobName)) {
+        if (!this.getJob(jobName)) {
             return Promise.resolve(false);
         } else {
             if (!force) {
@@ -61,22 +61,7 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
 
         }
     }
-    async isJobLocked(jobName: string): Promise<boolean> {
-        let result = await AtomJobModel.query().where('name', jobName).limit(1).first();
-        return Boolean(result['schedulerID']);
-    }
-    async unlockJob(jobName: string): Promise<boolean> {
-        const numUpdated = await AtomJobModel.query().patch({ schedulerID: null } as Partial<AtomJobModel>).where('name', jobName).limit(1).first();
-        return (Boolean(numUpdated));
-    }
-    async lockJob(jobName: string, schedulerID: string): Promise<boolean> {
-        const numUpdated = await AtomJobModel.query().patch({ schedulerID: schedulerID } as Partial<AtomJobModel>).where('name', jobName).whereNull("schedulerID").limit(1).first();
-        return (Boolean(numUpdated));
-
-    }
-    async jobExists(jobName: string): Promise<boolean> {
-        return (Boolean(await AtomJobModel.query().where('name', jobName).limit(1).first()));
-    }
+   
     async getJob(jobName: string): Promise<AtomJob> {
         let result = await AtomJobModel.query().where('name', jobName).limit(1).first();
         if (result) {

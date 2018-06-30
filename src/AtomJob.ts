@@ -1,4 +1,3 @@
-import { AtomDBAdapter } from "./AtomDBAdapter";
 import { AtomSchedulerError } from "./AtomSchedulerError";
 //import { date } from "date.js"; 
 var date = require("date.js");

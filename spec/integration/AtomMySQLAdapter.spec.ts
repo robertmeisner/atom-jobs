@@ -19,7 +19,7 @@ describe("MySQLAdapter", () => {
         let job2 = await adapter.saveJob(new AtomJob(job2Name, 'tomorrow'));
         expect(job1).toBeTruthy();
         expect(job2).toBeTruthy();
-        expect(await adapter.jobExists(job1Name)).toBeTruthy();
+        expect(await adapter.getJob(job1Name)).toBeTruthy();
         done();
     });
     it("should update", async (done) => {
@@ -34,26 +34,15 @@ describe("MySQLAdapter", () => {
     it("should delete job", async (done) => {
         let job1 = await adapter.saveJob(new AtomJob(job1Name, 'tomorrow'));
         let job2 = await adapter.saveJob(new AtomJob(job2Name, 'tomorrow'));
-        expect(await adapter.jobExists(job1Name)).toBeTruthy();
-        expect(await adapter.jobExists(job2Name)).toBeTruthy();
+        expect(await adapter.getJob(job1Name)).toBeTruthy();
+        expect(await adapter.getJob(job2Name)).toBeTruthy();
         await adapter.deleteJob(job1Name);
         await adapter.deleteJob(job2Name);
-        expect(await adapter.jobExists(job1Name)).toBeFalsy();
-        expect(await adapter.jobExists(job2Name)).toBeFalsy();
+        expect(await adapter.getJob(job1Name)).toBeFalsy();
+        expect(await adapter.getJob(job2Name)).toBeFalsy();
         done();
     });
-    it("should be able to block and unblock", async (done) => {
-        let job1 = await adapter.saveJob(new AtomJob(job1Name, 'tomorrow'));
-        let job2 = await adapter.saveJob(new AtomJob(job2Name, 'tomorrow'));
-        expect(await adapter.isJobLocked(job1Name)).toBeFalsy();
-        let schedulerID = "sassddsf-as--A SasA-asAS";
-        await adapter.lockJob(job1Name, schedulerID); 
-        expect((await adapter.getJob(job1Name)).schedulerID).toEqual(schedulerID);
-        expect((await adapter.isJobLocked(job1Name))).toBeTruthy();
-        await adapter.unlockJob(job1Name);
-        expect((await adapter.isJobLocked(job1Name))).toBeFalsy();
-        done();
-    });
+   
     it("should list all jobs", async (done) => {
         let job1 = await adapter.saveJob(new AtomJob(job1Name, 'tomorrow'));
         let job2 = await adapter.saveJob(new AtomJob(job2Name, 'tomorrow'));
