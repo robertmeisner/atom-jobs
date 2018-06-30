@@ -41,11 +41,17 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
         if (!await this.getJob(job.name)) {
             throw new AtomSchedulerError("You can update only existing job. " + job.name + " doesn't exist.");
         }
-        const numUpdated = await AtomJobModel.query().patch(job as Partial<AtomJobModel>).where('name', job.name).limit(1);
-        if (numUpdated)
-            return this.getJob(job.name);
-        else
-            throw new AtomSchedulerError("Error updating job: " + job.name);
+        return AtomJobModel.query().patch(job as Partial<AtomJobModel>).where('name', job.name).limit(1)
+            .then((numUpdated) => {
+                if (numUpdated)
+                    return this.getJob(job.name)
+                else
+                    throw new AtomSchedulerError("Error updating job: " + job.name);
+            })
+            .catch((err) => {
+                throw err;
+            });
+
     }
     async deleteJob(jobName: string, force?: boolean): Promise<boolean> {
         let jobExists: AtomJob = await this.getJob(jobName);
@@ -61,13 +67,19 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
 
         }
     }
-   
+
     async getJob(jobName: string): Promise<AtomJob> {
-        let result = await AtomJobModel.query().where('name', jobName).limit(1).first();
-        if (result) {
-            return AtomJob.create(result);
-        }
-        return null;
+        return AtomJobModel.query().where('name', jobName).limit(1).first()
+            .then((job) => {
+                if (job)
+                    return Promise.resolve(AtomJob.create(job));
+                else
+                    return Promise.resolve(undefined);
+            })
+            .catch((err) => {
+                throw err;
+            });
+
     }
     async getNextJob(schedulerID: string): Promise<AtomJob> {
         let job: AtomJob;
@@ -86,7 +98,7 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
         results.forEach((value, index) => {
             jobs.push(AtomJob.create(value));
         });
-        return jobs;
+        return Promise.resolve(jobs);
     }
 
 }

@@ -15,8 +15,7 @@ let DBMock: AtomDBAdapter = {
         return Promise.resolve(job);
     },
     updateJob(job: AtomJob | any): Promise<AtomJob> {
-        console.log("####################",JOBS.get(job.name), job)
-        return Object.assign(JOBS.get(job.name), job);
+        return Promise.resolve(Object.assign(JOBS.get(job.name), job));
     },
     getJob(name: string): Promise<AtomJob> {
         return Promise.resolve(JOBS.get(name));
@@ -104,6 +103,7 @@ describe("Scheduler", () => {
         let job2 = await scheduler.createJob("L2", "sunday night");
         let job3 = await scheduler.createJob("L3", "sunday night");
         let job4 = await scheduler.createJob("L4", "sunday night");
+        expect((await scheduler.getAllJobs()).length).toBe(4);
         done();
     });
 }); 

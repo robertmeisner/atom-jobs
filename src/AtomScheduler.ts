@@ -1,6 +1,5 @@
 import { AtomDBAdapter } from "./AtomDBAdapter";
 import { AtomJob } from "./AtomJob";
-import date = require('date.js');
 import { AtomSchedulerError } from "./AtomSchedulerError";
 var crypto = require('crypto');
 export class AtomScheduler {
@@ -30,7 +29,7 @@ export class AtomScheduler {
      * @param jobName 
      * @param func 
      */
-    async createJob(jobName, when: string, func?: (job: AtomJob, data?: {}) => Promise<boolean>, data?: object) {
+    async createJob(jobName, when: string, func?: (job: AtomJob, data?: {}, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object) {
         let job: AtomJob = new AtomJob(jobName, when);
         job = await this.dBAdapter.saveJob(job);
         if (func || data)
@@ -42,7 +41,11 @@ export class AtomScheduler {
         if (!job) {
             throw new AtomSchedulerError("Job " + jobName + " could not be defined. Create the job first.")
         }
-        let cancelToken: { cancel: Function } = { cancel: null };
+        let cancelToken: { cancel: Function } = {
+            cancel: () => {
+                throw new AtomSchedulerError("Stopped Job " + job.name);
+            }
+        };
         this.jobDefinitions.set(jobName, { func: func, data: data, cancelToken: cancelToken })
         return job;
     }
@@ -70,25 +73,48 @@ export class AtomScheduler {
         }, 60 * 1000);
     }
     async isJobLocked(jobName: string): Promise<boolean> {
-        let result = await this.dBAdapter.getJob(jobName);
-        return Boolean(result['schedulerID']);
+        return this.dBAdapter.getJob(jobName)
+            .then((job) => {
+                return Boolean(job.schedulerID);
+            })
+            .catch((err) => {
+                throw err;
+            });
     }
     async unlockJob(jobName: string): Promise<boolean> {
-        let job = await this.dBAdapter.updateJob({ name: jobName, schedulerID: null });
-        return (Boolean(job));
+        return await this.dBAdapter.updateJob({ name: jobName, schedulerID: null })
+            .then((job) => {
+                return Promise.resolve(Boolean(job));
+            })
+            .catch((err) => {
+                throw err;
+            });
+
     }
     async lockJob(jobName: string, schedulerID: string): Promise<boolean> {
-        let job = await this.dBAdapter.updateJob({ name: jobName, schedulerID: schedulerID });
-        return (Boolean(job));
+        console.log(this.dBAdapter.updateJob({ name: jobName, schedulerID: schedulerID }));
+        return this.dBAdapter.updateJob({ name: jobName, schedulerID: schedulerID })
+            .then((job) => {
+                return Promise.resolve(Boolean(job));
+            })
+            .catch((err) => {
+                throw err;
+            });
     }
     async jobExists(jobName: string): Promise<boolean> {
-        return (Boolean(await this.dBAdapter.getJob(jobName)));
+        return (this.dBAdapter.getJob(jobName))
+            .then((job) => {
+                return Promise.resolve(Boolean(job));
+            })
+            .catch((err) => {
+                throw err;
+            });
     }
     async getJob(jobName: string): Promise<AtomJob> {
-        return await this.dBAdapter.getJob(jobName);
+        return this.dBAdapter.getJob(jobName);
     }
-    async getAllJobs(){
-        
+    async getAllJobs(): Promise<AtomJob[]> {
+        return this.dBAdapter.getAllJobs();
     }
     start() {
         if (!this.started) {
