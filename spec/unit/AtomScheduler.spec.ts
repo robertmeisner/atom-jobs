@@ -20,9 +20,6 @@ let DBMock: AtomDBAdapter = {
     getJob(name: string): Promise<AtomJob> {
         return Promise.resolve(JOBS.get(name));
     },
-    getNextJob(schedulerID: string): Promise<AtomJob> {
-        return null;
-    },
     getAllJobs(): Promise<AtomJob[]> {
         return Promise.resolve(Array.from(JOBS.values()));//JOBS.values().;
     }
@@ -82,23 +79,21 @@ describe("Scheduler", () => {
         expect(job).toBeTruthy();
         expect(job.name).toEqual("A1");
         expect(scheduler.jobDefinitions.has("A1"))
+        expect(DBMock.saveJob).toHaveBeenCalled();
         done();
-        //expect(DBMock.saveJob).toHaveBeenCalled();
-
     });
     it("should be able to block and unblock", async (done) => {
         let job1 = await scheduler.createJob(job1Name, 'tomorrow');
         let job2 = await scheduler.createJob(job2Name, 'tomorrow');
         expect(await scheduler.isJobLocked(job1Name)).toBeFalsy();
-        let schedulerID = "sassddsf-as--A SasA-asAS";
-        await scheduler.lockJob(job1Name, schedulerID);
-        expect((await scheduler.getJob(job1Name)).schedulerID).toEqual(schedulerID);
+        await scheduler.lockJob(job1Name);
+        expect((await scheduler.getJob(job1Name)).schedulerID).toEqual(scheduler.ID);
         expect((await scheduler.isJobLocked(job1Name))).toBeTruthy();
         await scheduler.unlockJob(job1Name);
         expect((await scheduler.isJobLocked(job1Name))).toBeFalsy();
         done();
     });
-    xit("should list all jobs", async (done) => {
+    it("should list all jobs", async (done) => {
         let job = await scheduler.createJob("L1", "sunday night");
         let job2 = await scheduler.createJob("L2", "sunday night");
         let job3 = await scheduler.createJob("L3", "sunday night");
@@ -106,4 +101,18 @@ describe("Scheduler", () => {
         expect((await scheduler.getAllJobs()).length).toBe(4);
         done();
     });
+    it("should getNextJob", async (done) => {
+        let job = await scheduler.createJob("L1", "sunday night",job=>Promise.resolve(true),{});
+        let job2 = await scheduler.createJob("L2", "sunday night",job=>Promise.resolve(true),{});
+        let job3 = await scheduler.createJob("L3", "yesterday",job=>Promise.resolve(true),{});
+        let job4 = await scheduler.createJob("L4", "sunday night",job=>Promise.resolve(true),{});
+        scheduler.getNextJob().then((job) => {
+            expect(job.name).toBe(job3.name);
+            done();
+        });
+    });
+    it("should do active job", async (done) => {
+        done();
+    });
+
 }); 

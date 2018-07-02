@@ -33,38 +33,40 @@ export class AtomJob {
     public plannedOn: Date;
     public plannedString: string;
     public started: Date;
+    public finished: Date;
     public timeElapsed: number;
     public previousStatus?: AtomJobStatus;
     public previouslyStarted?: Date;
     public previousTimeElapsed?: number;
     public lastErrorJSON?: string;
     public schedulerID?: string;
-    public timeout: number = 10 * 60 * 1000;
+    public timeout: number = 10 * 60 * 1000; 
     public isRecurring = true;
 
 
     constructor(name: string, when: string, isRecurring: boolean = true) {
         this.name = name;
         this.plannedString = when;
-        this.plannedOn = date(this.plannedString);
+        this.refreshPlannedOn();
         this.isRecurring = isRecurring;
         this.status = AtomJobStatus.Waiting;
     }
+    private refreshPlannedOn() {
+        this.plannedOn = date(this.plannedString, this.started);
+    }
     async perform(func: (job: AtomJob, data?: object, cancelTocken?: { cancel: Function }) => Promise<boolean>, data: object, cancelToken: { cancel: Function }): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            if (this.shouldRun()) {
+            if (this.couldRun()) {
                 this.status = AtomJobStatus.Pending;
                 this.started = new Date();
                 this.timeElapsed = 0;
-                var startTime = Date.now();
+                var startTime = new Date();
                 let doIt = promiseTimeout(this.timeout, func(this, data, cancelToken))
                     .then(response => {// Wait for the promise to get resolved
-                        this.timeElapsed = Date.now() - startTime;
                         this.status = AtomJobStatus.Finished;
                         resolve(response);
                     })
                     .catch((error: Error) => {
-                        this.timeElapsed = Date.now() - startTime;
                         if (error.message.startsWith("Timed")) {
                             this.status = AtomJobStatus.Timeout;
                         } else if (error.message.startsWith("Stopped")) {
@@ -74,15 +76,17 @@ export class AtomJob {
                         }
                         this.lastErrorJSON = JSON.stringify(error);
                         reject(error);
+                    }).finally(() => {
+                        this.finished = new Date();
+                        this.refreshPlannedOn();
+                        this.timeElapsed = this.finished.getTime() - this.started.getTime();
                     });
             } else {
-                reject(new AtomSchedulerError("Job " + this.name + " shouldn't run. It's status is: " + this.status));
+                reject(new AtomSchedulerError("Job " + this.name + " shouldn't run. It's status is: " + this.status+" and plannedOn: "+this.plannedOn));
             }
         });
 
     }
-
-
     public static create(data: object): AtomJob {
 
         let job = new AtomJob(data['name'], data['planString']);
@@ -94,13 +98,10 @@ export class AtomJob {
         return job;
 
     }
-
-
-    private shouldRun() {
-        if (this.status === AtomJobStatus.Waiting || this.status === AtomJobStatus.Finished) {
-            return true;
-        } else {
-            return false;
-        }
+    public canBeNext() {
+        return (this.couldRun() && !this.schedulerID);
+    }
+    public couldRun() {
+        return [AtomJobStatus.Failed, AtomJobStatus.Finished, AtomJobStatus.Stopped, AtomJobStatus.Timeout, AtomJobStatus.Waiting].includes(this.status) && this.plannedOn <= new Date();
     }
 }

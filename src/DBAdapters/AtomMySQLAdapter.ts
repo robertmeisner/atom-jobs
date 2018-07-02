@@ -81,24 +81,20 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
             });
 
     }
-    async getNextJob(schedulerID: string): Promise<AtomJob> {
-        let job: AtomJob;
-        //update next job which needs to be executed and is free with schedulerId
-        const numUpdated = await AtomJobModel.query()
-            .patch({ schedulerID: schedulerID } as Partial<AtomJobModel>)
-            .where('plannedOn', '>=', new Date().toISOString()).whereNull('schedulerId').whereNotNull('plannedOn').limit(1).first();
-        if (numUpdated) {
-            return AtomJob.create(await AtomJobModel.query().where('schedulerID', schedulerID).limit(1).first());
-        }
-        return null;
-    }
+
     async getAllJobs(): Promise<AtomJob[]> {
-        let results = await AtomJobModel.query();
-        let jobs: AtomJob[] = [];
-        results.forEach((value, index) => {
-            jobs.push(AtomJob.create(value));
-        });
-        return Promise.resolve(jobs);
+        return AtomJobModel.query()
+            .then((results) => {
+                let jobs: AtomJob[] = [];
+                results.forEach((value, index) => {
+                    jobs.push(AtomJob.create(value));
+                });
+                return Promise.resolve(jobs);
+            })
+            .catch((err) => {
+                throw err;
+            });
+
     }
 
 }

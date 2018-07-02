@@ -7,8 +7,8 @@ describe("MySQLAdapter", () => {
     const job1Name = "job1Name";
     const job2Name = "job2Name";
     beforeEach(async (done) => {
-        console.log("deleted " + job1Name, await adapter.deleteJob(job1Name, true));
-        console.log("deleted " + job2Name, await adapter.deleteJob(job2Name, true));
+        await adapter.deleteJob(job1Name, true);
+        await adapter.deleteJob(job2Name, true);
         done();
     });
     afterEach(() => {
@@ -42,7 +42,7 @@ describe("MySQLAdapter", () => {
         expect(await adapter.getJob(job2Name)).toBeFalsy();
         done();
     });
-   
+
     it("should list all jobs", async (done) => {
         let job1 = await adapter.saveJob(new AtomJob(job1Name, 'tomorrow'));
         let job2 = await adapter.saveJob(new AtomJob(job2Name, 'tomorrow'));

@@ -4,8 +4,10 @@ require('../common');
 
 describe("Job", () => {
     let job: AtomJob;
+    let job2: AtomJob;
     beforeEach(function () {
-        job = new AtomJob("TestJob", "tomorrow morning", true); 
+        job = new AtomJob("TestJob", "tomorrow morning");
+        job2 = new AtomJob("TestJob", 'yesterday');
 
         // spyOn(foo, 'setBar').and.callThrough();
     });
@@ -24,15 +26,22 @@ describe("Job", () => {
         expect(job.plannedOn.getDate()).toBe(tomorrow.getDate());
     });
     it("should perform job", () => {
-        job.perform((job, data, cancelToken): Promise<boolean> => {
+        job2.perform((job, data, cancelToken): Promise<boolean> => {
             return Promise.resolve(true);
         }, {}, { cancel: null });
-
-    })
+    });
+    it("shouldn't perform future job", async(done) => {
+        job.perform((job, data, cancelToken): Promise<boolean> => {
+            return Promise.resolve(true);
+        }, {}, { cancel: null }).catch((error) => {
+            expect(error).toBeTruthy();
+            done();
+        });
+    });
     it("should check for timeout", async (done) => {
-        job.timeout = 20;
+        job2.timeout = 20;
         let jobTime = 500;
-        let p = await job.perform(((job, data, cancelToken): Promise<boolean> => {
+        let p = await job2.perform(((job, data, cancelToken): Promise<boolean> => {
             return new Promise((resolve, reject) => {
                 let id = setTimeout(() => {
                     clearTimeout(id);
@@ -43,14 +52,13 @@ describe("Job", () => {
 
             done();
         });
-        expect(job.status).toEqual(AtomJobStatus.Timeout);
-        expect(job.timeElapsed).toBeLessThan(jobTime);
+        expect(job2.status).toEqual(AtomJobStatus.Timeout);
+        expect(job2.timeElapsed).toBeLessThan(jobTime);
 
     })
-    it("should be cancelable",  async (done) => { 
+    it("should be cancelable", async (done) => {
         let token = { cancel: null };
-        let p = job.perform(((job, data, cancelToken): Promise<boolean> => {
-
+        let p = job2.perform(((job, data, cancelToken): Promise<boolean> => {
             return new Promise((resolve, rej) => {
                 let id = setTimeout(() => {
                     clearTimeout(id);
@@ -64,10 +72,11 @@ describe("Job", () => {
         }), {}, token)
             .then(val => { expect("should").toBe("not run"); })
             .catch((err) => {
-                expect(job.status).toBe(AtomJobStatus.Stopped);
-                expect(job.timeElapsed).toBeLessThan(200);
+                expect(job2.status).toBe(AtomJobStatus.Stopped);
+                expect(job2.timeElapsed).toBeLessThan(200);
+                expect(job2.timeElapsed).toBeGreaterThan(0);
                 done();
-            });  
+            });
         token.cancel();
 
     })
