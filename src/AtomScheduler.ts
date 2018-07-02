@@ -7,7 +7,7 @@ export class AtomScheduler {
         this.dBAdapter = db;
         this.ID = (() => {
             let array;
-            if (process.version.startsWith('v9')) {
+            if (process && (+process.version.substr(0,process.version.indexOf('.')).substr(1)>=9)) {
                 array = (new Uint32Array(8)); //node 9+
             } else {
                 array = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]);
