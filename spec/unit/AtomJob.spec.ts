@@ -6,7 +6,7 @@ describe("Job", () => {
     let job: AtomJob;
     let job2: AtomJob;
     beforeEach(function () {
-        job = new AtomJob("TestJob", "tomorrow morning");
+        job = new AtomJob("TestJob", "tomorrow at 4:00am");
         job2 = new AtomJob("TestJob", 'yesterday');
 
         // spyOn(foo, 'setBar').and.callThrough();
@@ -17,10 +17,10 @@ describe("Job", () => {
         expect(job).toBeTruthy();
     });
     it("should calculate plannedDate", () => {
-        expect(job.plannedString).toEqual("tomorrow morning");
+        expect(job.plannedString).toEqual("tomorrow at 4:00am");
         var tomorrow = new Date();
         tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-        tomorrow.setUTCHours(4, 0, 0, 0);
+        tomorrow.setHours(4, 0, 0, 0);
         console.log(job.plannedOn);
         console.log(job.plannedOn.getUTCHours());
         console.log(tomorrow.getUTCHours());
