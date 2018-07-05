@@ -63,7 +63,7 @@ describe("Job", () => {
                 let id = setTimeout(() => {
                     clearTimeout(id);
                     resolve(true);
-                }, 200);
+                }, 300);
                 cancelToken.cancel = () => {
                     clearTimeout(id);
                     rej(new AtomSchedulerError("Stopped by user."));
@@ -73,10 +73,13 @@ describe("Job", () => {
             .then(val => { expect("should").toBe("not run"); })
             .catch((err) => {
                 expect(job2.status).toBe(AtomJobStatus.Stopped);
-                expect(job2.timeElapsed).toBeLessThan(200);
+                expect(job2.timeElapsed).toBeLessThan(300);
                 expect(job2.timeElapsed).toBeGreaterThan(0);
                 done();
             });
+        await new Promise(resolve=>{
+            setTimeout(resolve,50)
+        });
         token.cancel();
 
     })
