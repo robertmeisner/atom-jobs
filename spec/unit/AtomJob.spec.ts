@@ -19,18 +19,18 @@ describe("Job", () => {
     it("should calculate plannedDate", () => {
         expect(job.plannedString).toEqual("tomorrow morning");
         var tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(8, 0, 0, 0);
-        expect(job.plannedOn.getHours()).toBe(tomorrow.getHours());
-        expect(job.plannedOn.getMinutes()).toBe(tomorrow.getMinutes());
-        expect(job.plannedOn.getDate()).toBe(tomorrow.getDate());
+        tomorrow.setUTCDate(tomorrow.getDate() + 1);
+        tomorrow.setUTCHours(4, 0, 0, 0);
+       expect(job.plannedOn.getUTCHours()).toBe(tomorrow.getUTCHours());
+        expect(job.plannedOn.getUTCMinutes()).toBe(tomorrow.getUTCMinutes());
+        expect(job.plannedOn.getUTCDate()).toBe(tomorrow.getUTCDate());
     });
     it("should perform job", () => {
         job2.perform((job, data, cancelToken): Promise<boolean> => {
             return Promise.resolve(true);
         }, {}, { cancel: null });
     });
-    it("shouldn't perform future job", async(done) => {
+    it("shouldn't perform future job", async (done) => {
         job.perform((job, data, cancelToken): Promise<boolean> => {
             return Promise.resolve(true);
         }, {}, { cancel: null }).catch((error) => {

@@ -7,7 +7,7 @@ export class AtomScheduler {
         this.dBAdapter = db;
         this.ID = (() => {
             let array;
-            if (process && (+process.version.substr(0,process.version.indexOf('.')).substr(1)>=9)) {
+            if (process && (+process.version.substr(0, process.version.indexOf('.')).substr(1) >= 9)) {
                 array = (new Uint32Array(8)); //node 9+
             } else {
                 array = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]);
@@ -36,11 +36,13 @@ export class AtomScheduler {
     * @param data 
     */
     async createJob(jobName, when: string, func?: (job: AtomJob, data?: {}, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object) {
-        let job: AtomJob = new AtomJob(jobName, when);
-        job = await this.dBAdapter.saveJob(job);
+        let job: AtomJob;
+        job = new AtomJob(jobName, when);
+        if (!await this.jobExists(jobName))
+            job = await this.dBAdapter.saveJob(job);
         if (func || data)
             job = await this.defineJob(jobName, func, data);
-        return job;
+        return this.getJob(jobName);
     }
     async defineJob(jobName: string, func?: (job: AtomJob, data?: any, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob> {
         return this.dBAdapter.getJob(jobName)
@@ -140,8 +142,8 @@ export class AtomScheduler {
                     .catch((err) => {
                         throw err;
                     });
-            }else{
-               // skip
+            } else {
+                // skip
             }
         }
         return Promise.resolve(undefined);

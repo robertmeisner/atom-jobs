@@ -1,6 +1,6 @@
 import { AtomSchedulerError } from "./AtomSchedulerError";
 //import { date } from "date.js"; 
-var date = require("date.js");
+var chrono = require('chrono-node');
 export enum AtomJobStatus {
     Stopped = "Stopped",
     Finished = "Finished",
@@ -52,7 +52,7 @@ export class AtomJob {
         this.status = AtomJobStatus.Waiting;
     }
     private refreshPlannedOn() {
-        this.plannedOn = date(this.plannedString, this.started);
+        this.plannedOn = chrono.parseDate(this.plannedString, this.started);
     }
     async perform(func: (job: AtomJob, data?: object, cancelTocken?: { cancel: Function }) => Promise<boolean>, data: object, cancelToken: { cancel: Function }): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {

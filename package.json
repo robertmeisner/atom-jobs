@@ -37,6 +37,7 @@
   },
   "homepage": "https://github.com/robertmeisner/atom-jobs#readme",
   "dependencies": {
+    "chrono-node": "1.3.5",
     "crypto": "^1.0.1",
     "date.js": "^0.3.3",
     "tslib": "1.9.3"
