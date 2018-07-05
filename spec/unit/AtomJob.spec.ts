@@ -19,7 +19,7 @@ describe("Job", () => {
     it("should calculate plannedDate", () => {
         expect(job.plannedString).toEqual("tomorrow morning");
         var tomorrow = new Date();
-        tomorrow.setUTCDate(tomorrow.getDate() + 1);
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
         tomorrow.setUTCHours(4, 0, 0, 0);
        expect(job.plannedOn.getUTCHours()).toBe(tomorrow.getUTCHours());
         expect(job.plannedOn.getUTCMinutes()).toBe(tomorrow.getUTCMinutes());
