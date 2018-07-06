@@ -55,7 +55,7 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
     }
     async deleteJob(jobName: string, force?: boolean): Promise<boolean> {
         let jobExists: AtomJob = await this.getJob(jobName);
-        if (!this.getJob(jobName)) {
+        if (!jobExists) {
             return Promise.resolve(false);
         } else {
             if (!force) {
