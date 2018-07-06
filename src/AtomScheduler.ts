@@ -1,6 +1,7 @@
 import { AtomDBAdapter } from "./AtomDBAdapter";
 import { AtomJob, AtomJobStatus } from "./AtomJob";
 import { AtomSchedulerError } from "./AtomSchedulerError";
+import { Exception } from "handlebars";
 var crypto = require('crypto');
 export class AtomScheduler {
     constructor(db: AtomDBAdapter) {
@@ -27,7 +28,7 @@ export class AtomScheduler {
     public activeJobDoPromise: Promise<boolean>;
     private started = false;
     private timer;
-
+    private static instance:AtomScheduler;
 
     async createJob(job: AtomJob | object);
     async createJob(jobName: string, when?: string, func?: (job: AtomJob, data?: {}, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob>;
@@ -176,6 +177,17 @@ export class AtomScheduler {
     }
     hasStarted(): boolean {
         return this.started;
+    }
+    static getInstance(firstConfig?) {
+        if (!AtomScheduler.instance) {
+            if(!firstConfig)
+            {
+                throw new Exception("Initialize scheduler with storage config data first.");
+            }
+            AtomScheduler.instance = new AtomScheduler(firstConfig);
+            // ... any one time initialization goes here ...
+        }
+        return AtomScheduler.instance;
     }
 
 }
