@@ -28,21 +28,24 @@ export class AtomScheduler {
     private started = false;
     private timer;
 
-    /**
-    * Creates new job and persists it with DBAdapter.
-    * @param jobName 
-    * @param when 
-    * @param func 
-    * @param data 
-    */
-    async createJob(jobName, when: string, func?: (job: AtomJob, data?: {}, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object) {
+
+    async createJob(job: AtomJob | object);
+    async createJob(jobName: string, when?: string, func?: (job: AtomJob, data?: {}, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob>;
+    async createJob(jobName: string | AtomJob | object, when?: string, func?: (job: AtomJob, data?: {}, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob> {
         let job: AtomJob;
-        job = new AtomJob(jobName, when);
-        if (!await this.jobExists(jobName))
+        if (typeof jobName !== 'string') {
+            jobName = (<AtomJob>jobName).name;
+        } else {
+            job = new AtomJob(<string>jobName, when);
+        }
+        if (!await this.jobExists(job.name))
             job = await this.dBAdapter.saveJob(job);
         if (func || data)
-            job = await this.defineJob(jobName, func, data);
-        return this.getJob(jobName);
+            job = await this.defineJob(job.name, func, data);
+        return this.getJob(job.name);
+    }
+    async updateJob(job: AtomJob) {
+        return this.dBAdapter.updateJob(job);
     }
     async defineJob(jobName: string, func?: (job: AtomJob, data?: any, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob> {
         return this.dBAdapter.getJob(jobName)
