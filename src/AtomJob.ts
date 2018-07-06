@@ -42,6 +42,10 @@ export class AtomJob {
     public schedulerID?: string;
     public timeout: number = 10 * 60 * 1000; 
     public isRecurring = true;
+    public metadata:string;
+
+
+
 
 
     constructor(name: string, when: string, isRecurring: boolean = true) {
@@ -103,5 +107,12 @@ export class AtomJob {
     }
     public couldRun() {
         return [AtomJobStatus.Failed, AtomJobStatus.Finished, AtomJobStatus.Stopped, AtomJobStatus.Timeout, AtomJobStatus.Waiting].includes(this.status) && this.plannedOn <= new Date();
+    }
+    public get metadataObject() : object {
+        return JSON.parse(this.metadata);
+    }
+    
+    public set metadataObject(v : object){
+        this.metadata = JSON.stringify(v);
     }
 }
