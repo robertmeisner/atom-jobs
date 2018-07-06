@@ -21,11 +21,7 @@ describe("Job", () => {
         var tomorrow = new Date();
         tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
         tomorrow.setHours(4, 0, 0, 0);
-        console.log(job.plannedOn);
-        console.log(job.plannedOn.getUTCHours());
-        console.log(tomorrow.getUTCHours());
-        console.log(tomorrow);
-       expect(job.plannedOn.getUTCHours()).toBe(tomorrow.getUTCHours());
+        expect(job.plannedOn.getUTCHours()).toBe(tomorrow.getUTCHours());
         expect(job.plannedOn.getUTCMinutes()).toBe(tomorrow.getUTCMinutes());
         expect(job.plannedOn.getUTCDate()).toBe(tomorrow.getUTCDate());
     });
@@ -81,8 +77,8 @@ describe("Job", () => {
                 expect(job2.timeElapsed).toBeGreaterThan(0);
                 done();
             });
-        await new Promise(resolve=>{
-            setTimeout(resolve,50)
+        await new Promise(resolve => {
+            setTimeout(resolve, 50)
         });
         token.cancel();
 
