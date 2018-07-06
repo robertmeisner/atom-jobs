@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.4.0"></a>
+# [0.4.0](https://github.com/robertmeisner/atom-jobs/compare/v0.3.1...v0.4.0) (2018-07-06)
+
+
+### Bug Fixes
+
+* Moved getNextJob logic to scheduler ([53c2e5a](https://github.com/robertmeisner/atom-jobs/commit/53c2e5a))
+* **dates:**   Job should calculate plannedDate ([03cf43f](https://github.com/robertmeisner/atom-jobs/commit/03cf43f))
+* **promises:** Correct promises usage. Limit 'await' count. ([209d984](https://github.com/robertmeisner/atom-jobs/commit/209d984))
+* **tests:** jobs should be cancelable ([bbfe6b0](https://github.com/robertmeisner/atom-jobs/commit/bbfe6b0))
+* **tests:** removed console.log ([ae8c21d](https://github.com/robertmeisner/atom-jobs/commit/ae8c21d))
+* remove unnecessary geJob call ([a383c90](https://github.com/robertmeisner/atom-jobs/commit/a383c90))
+
+
+### Features
+
+* Add metadata and metadataObject fields ([1822931](https://github.com/robertmeisner/atom-jobs/commit/1822931))
+* use chrono instead of date.js ([63a304d](https://github.com/robertmeisner/atom-jobs/commit/63a304d))
+
+
+
 <a name="0.3.1"></a>
 ## [0.3.1](https://github.com/robertmeisner/atom-jobs/compare/v0.3.0...v0.3.1) (2018-06-30)
 
