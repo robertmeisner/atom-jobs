@@ -44,14 +44,11 @@ export class AtomJob {
     public isRecurring = true;
     public metadata:string;
 
-
-
-
-
-    constructor(name: string, when: string, isRecurring: boolean = true) {
+    constructor(name: string, when: string, metadataObject:object={}, isRecurring: boolean = true) {
         this.name = name;
         this.plannedString = when;
         this.refreshPlannedOn();
+        this.metadataObject=metadataObject;
         this.isRecurring = isRecurring;
         this.status = AtomJobStatus.Waiting;
     }
