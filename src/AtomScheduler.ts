@@ -34,7 +34,7 @@ export class AtomScheduler {
     async createJob(jobName: string | AtomJob | object, when?: string, func?: (job: AtomJob, data?: {}, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob> {
         let job: AtomJob;
         if (typeof jobName !== 'string') {
-            jobName = (<AtomJob>jobName).name;
+            job = <AtomJob>jobName;
         } else {
             job = new AtomJob(<string>jobName, when);
         }
@@ -152,11 +152,11 @@ export class AtomScheduler {
         return Promise.resolve(undefined);
     }
     async getAllJobs(jobConditions?: string): Promise<AtomJob[]>;
-    async getAllJobs(jobConditions?: {field:string,operator?:string,value:string}[]): Promise<AtomJob[]>;
-    async getAllJobs(jobConditions?: string | {field:string,operator?:string,value:string}[]): Promise<AtomJob[]> {
-        let conditions: {field:string,operator?:string,value:string}[] = [];
+    async getAllJobs(jobConditions?: { field: string, operator?: string, value: string }[]): Promise<AtomJob[]>;
+    async getAllJobs(jobConditions?: string | { field: string, operator?: string, value: string }[]): Promise<AtomJob[]> {
+        let conditions: { field: string, operator?: string, value: string }[] = [];
         if (typeof jobConditions === 'string') {
-            conditions.push({field:'name',operator:'like',value:jobConditions});
+            conditions.push({ field: 'name', operator: 'like', value: jobConditions });
         } else {
             conditions = jobConditions;
         }
