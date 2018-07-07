@@ -26,12 +26,13 @@ export class AtomScheduler {
     public activeJob: AtomJob;
     public activeJobDoPromise: Promise<boolean>;
     private started = false;
+    private jobRunning = false;
     private timer;
     private static instance: AtomScheduler;
 
     async createJob(job: AtomJob | object);
-    async createJob(jobName: string, when?: string,metadata?:object): Promise<AtomJob>;
-    async createJob(jobName: string | AtomJob | object, when?: string,metadata?:object): Promise<AtomJob> {
+    async createJob(jobName: string, when?: string, metadata?: object): Promise<AtomJob>;
+    async createJob(jobName: string | AtomJob | object, when?: string, metadata?: object): Promise<AtomJob> {
         let job: AtomJob;
         if (typeof jobName !== 'string') {
             job = <AtomJob>jobName;
@@ -50,7 +51,7 @@ export class AtomScheduler {
      * @param {boolean} forceProperties - Forces update to include all properties. 
      */
     async updateJob(job: AtomJob | object, forceProperties?: boolean) {
-        let skipFields = ['schedulerID', 'status','started','finished','timeElapsed'];
+        let skipFields = ['schedulerID', 'status', 'started', 'finished', 'timeElapsed'];
         for (const prop in skipFields) {
             if (!forceProperties && prop in job)
                 delete job[prop];
@@ -75,28 +76,7 @@ export class AtomScheduler {
                 throw err;
             });
     }
-    private processJobs() {
-        this.timer = setTimeout(async () => {
-            if (this.started) {
-                let jobName;
-                if (!this.activeJob) {
-                    this.activeJob = await this.getNextJob();
-                }
-                if (this.activeJob) {
-                    jobName = this.activeJob.name;
-                    this.activeJobDoPromise = this.doJob(this.activeJob);
-                    this.activeJobDoPromise.then((value: boolean) => {
-                        console.log("Job " + jobName + " finished result: ", value);
-                    }).catch(reason => {
-                        console.log("Job " + jobName + " failed: ", reason);
-                    }).finally(() => {
-                        this.stop();
-                    });
-                }
-            }
-        }, 60 * 1000);
 
-    }
     async isJobLocked(jobName: string): Promise<boolean> {
         return this.dBAdapter.getJob(jobName)
             .then((job) => {
@@ -171,11 +151,37 @@ export class AtomScheduler {
         }
         return this.dBAdapter.getAllJobs(conditions);
     }
+    private processJobs() {
+        this.timer = setTimeout(async () => {
+            if (this.started && !this.activeJob) {
+                let jobName;
+                this.activeJob = await this.getNextJob();
+                if (this.activeJob) {
+                    jobName = this.activeJob.name;
+                    this.activeJobDoPromise = this.doJob(this.activeJob);
+                    this.activeJobDoPromise.then((value: boolean) => {
+                        console.log("Job " + jobName + " finished result: ", value);
+                    }).catch(reason => {
+                        console.log("Job " + jobName + " failed: ", reason);
+                    }).finally(() => {
+                        this.jobFinished();
+                    });
+                }
+            }
+        }, 60 * 1000);
+
+    }
     start() {
         if (!this.started) {
             this.started = true;
             this.processJobs();
         }
+    }
+    async jobFinished() {
+        this.jobRunning = false;
+        this.updateJob(this.activeJob, true);
+        await this.unlockJob(this.activeJob.name);
+        this.activeJob = null;
     }
     async stop() {
         clearTimeout(this.timer);
@@ -183,10 +189,7 @@ export class AtomScheduler {
             await this.jobDefinitions.get(this.activeJob.name).cancelToken.cancel();
         }
         this.started = false;
-        this.activeJob.schedulerID = null;
-        this.updateJob(this.activeJob,true);
-        await this.unlockJob(this.activeJob.name);
-        this.activeJob = null;
+        this.jobFinished();
     }
     private async doJob(job: AtomJob): Promise<boolean> {
         return this.activeJob.perform(this.jobDefinitions.get(job.name).func, this.jobDefinitions.get(job.name).data, this.jobDefinitions.get(job.name).cancelToken);
