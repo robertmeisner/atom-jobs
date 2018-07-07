@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.9.0"></a>
+# [0.9.0](https://github.com/robertmeisner/atom-jobs/compare/v0.8.3...v0.9.0) (2018-07-07)
+
+
+### Bug Fixes
+
+* getJobs filter by flag ([2eba675](https://github.com/robertmeisner/atom-jobs/commit/2eba675))
+
+
+### Features
+
+* Added jobFinished event ([e3ac417](https://github.com/robertmeisner/atom-jobs/commit/e3ac417))
+* jobStarted and ticked Events added ([6dd0ada](https://github.com/robertmeisner/atom-jobs/commit/6dd0ada))
+
+
+
 <a name="0.8.3"></a>
 ## [0.8.3](https://github.com/robertmeisner/atom-jobs/compare/v0.8.2...v0.8.3) (2018-07-07)
 
