@@ -59,8 +59,6 @@ describe("MySQLAdapter", () => {
         let job1 = await adapter.saveJob(new AtomJob('CRAWLER:' + job1Name, 'tomorrow'));
         let job2 = await adapter.saveJob(new AtomJob('CRAWLER:' + job2Name, 'tomorrow'));
         expect((await adapter.getAllJobs([{ field: 'name', operator: 'like', value: 'CRAWLER:%' }])).length).toBe(2);
-        await adapter.deleteJob('CRAWLER:' + job1Name);
-        await adapter.deleteJob('CRAWLER:' + job2Name);
         done();
     });
 
