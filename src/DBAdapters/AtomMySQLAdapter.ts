@@ -81,8 +81,6 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
     async getAllJobs(conditions?: { field: string, operator?: string, value: string }[]): Promise<AtomJob[]> {
         return AtomJobModel.query()
             .where((builder) => {
-                console.log(conditions);
-                
                 if (conditions)
                     conditions.forEach(condition => {
                         if (condition.operator) {
@@ -91,7 +89,6 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
                             builder=builder.where(condition.field, condition.value);
                         }
                     });
-                    console.log('-----------------');
                 return builder;
             })
             .then((results) => {

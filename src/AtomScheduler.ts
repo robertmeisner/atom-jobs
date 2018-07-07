@@ -171,19 +171,16 @@ export class AtomScheduler {
         this.timer = setInterval(async () => {
             this.ticked.trigger();
             if (this.started && !this.activeJob) {
-                let jobName;
                 this.activeJob = await this.getNextJob();
                 if (this.activeJob) {
-                    jobName = this.activeJob.name;
                     this.activeJobDoPromise = this.doJob(this.activeJob);
                     this.jobStarted.trigger(this.activeJob);
                     this.jobRunning = true;
                     this.activeJobDoPromise.then((value: boolean) => {
-                        console.log("Job " + jobName + " finished result: ", value);
+                        //console.log("Job " + jobName + " finished result: ", value);
                     }).catch(reason => {
-                        console.log("Job " + jobName + " failed: ", reason);
+                        //console.log("Job " + jobName + " failed: ", reason);
                     }).finally(() => {
-                        this.jobRunning = false;
                         this.afterJobFinished();
                     });
                 }
@@ -198,7 +195,7 @@ export class AtomScheduler {
         }
     }
     async afterJobFinished() {
-        let job=this.activeJob;
+        let job = this.activeJob;
         this.activeJob = null;
         this.jobRunning = false;
         this.jobFinished.trigger(job);
