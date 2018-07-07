@@ -185,12 +185,12 @@ export class AtomScheduler {
     hasStarted(): boolean {
         return this.started;
     }
-    static getInstance(firstConfig?) {
+    static getInstance(db?:AtomDBAdapter) {
         if (!AtomScheduler.instance) {
-            if (!firstConfig) {
+            if (!db) {
                 throw new AtomSchedulerError("Initialize scheduler with storage config data first.");
             }
-            AtomScheduler.instance = new AtomScheduler(firstConfig);
+            AtomScheduler.instance = new AtomScheduler(db);
             // ... any one time initialization goes here ...
         }
         return AtomScheduler.instance;
