@@ -102,10 +102,11 @@ describe("Scheduler", () => {
         done();
     });
     it("should getNextJob", async (done) => {
-        let job = await scheduler.createJob("L1", "sunday night",job=>Promise.resolve(true),{});
-        let job2 = await scheduler.createJob("L2", "sunday night",job=>Promise.resolve(true),{});
-        let job3 = await scheduler.createJob("L3", "yesterday",job=>Promise.resolve(true),{});
-        let job4 = await scheduler.createJob("L4", "sunday night",job=>Promise.resolve(true),{});
+        let job = await scheduler.createJob("L1", "sunday night",{});
+        let job2 = await scheduler.createJob("L2", "sunday night",{});
+        let job3 = await scheduler.createJob("L3", "yesterday",{});
+        await scheduler.defineJob("L3",job=>Promise.resolve(true),{});
+        let job4 = await scheduler.createJob("L4", "sunday night");
         scheduler.getNextJob().then((job) => {
             expect(job.name).toBe(job3.name);
             done();

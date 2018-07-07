@@ -30,8 +30,8 @@ export class AtomScheduler {
     private static instance: AtomScheduler;
 
     async createJob(job: AtomJob | object);
-    async createJob(jobName: string, when?: string, func?: (job: AtomJob, data?: {}, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob>;
-    async createJob(jobName: string | AtomJob | object, when?: string, func?: (job: AtomJob, data?: {}, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob> {
+    async createJob(jobName: string, when?: string,metadata?:object): Promise<AtomJob>;
+    async createJob(jobName: string | AtomJob | object, when?: string,metadata?:object): Promise<AtomJob> {
         let job: AtomJob;
         if (typeof jobName !== 'string') {
             job = <AtomJob>jobName;
@@ -40,8 +40,6 @@ export class AtomScheduler {
         }
         if (!await this.jobExists(job.name))
             job = await this.dBAdapter.saveJob(job);
-        if (func || data)
-            job = await this.defineJob(job.name, func, data);
         return this.getJob(job.name);
     }
     /**
