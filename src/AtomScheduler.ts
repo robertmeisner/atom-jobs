@@ -168,7 +168,7 @@ export class AtomScheduler {
         return this.dBAdapter.getAllJobs(conditions);
     }
     private processJobs() {
-        this.timer = setTimeout(async () => {
+        this.timer = setInterval(async () => {
             this.ticked.trigger();
             if (this.started && !this.activeJob) {
                 let jobName;
