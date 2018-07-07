@@ -1,6 +1,8 @@
 import { AtomDBAdapter } from "./AtomDBAdapter";
 import { AtomJob, AtomJobStatus } from "./AtomJob";
 import { AtomSchedulerError } from "./AtomSchedulerError";
+import { AtomSchedulerEvent, IAtomEvent } from "./AtomEvent";
+
 var crypto = require('crypto');
 export class AtomScheduler {
     constructor(db: AtomDBAdapter) {
@@ -29,6 +31,11 @@ export class AtomScheduler {
     private jobRunning = false;
     private timer;
     private static instance: AtomScheduler;
+
+    private _jobFinished = new AtomSchedulerEvent<AtomJob>();
+    public get jobFinished(): AtomSchedulerEvent<AtomJob> {
+        return this._jobFinished;
+    }
 
     async createJob(job: AtomJob | object);
     async createJob(jobName: string, when?: string, metadata?: object): Promise<AtomJob>;
@@ -159,12 +166,14 @@ export class AtomScheduler {
                 if (this.activeJob) {
                     jobName = this.activeJob.name;
                     this.activeJobDoPromise = this.doJob(this.activeJob);
+                    this.jobRunning = true;
                     this.activeJobDoPromise.then((value: boolean) => {
                         console.log("Job " + jobName + " finished result: ", value);
                     }).catch(reason => {
                         console.log("Job " + jobName + " failed: ", reason);
                     }).finally(() => {
-                        this.jobFinished();
+                        this.jobRunning = false;
+                        this.afterJobFinished();
                     });
                 }
             }
@@ -177,11 +186,14 @@ export class AtomScheduler {
             this.processJobs();
         }
     }
-    async jobFinished() {
+    async afterJobFinished() {
+        
         this.jobRunning = false;
-        this.updateJob(this.activeJob, true);
-        await this.unlockJob(this.activeJob.name);
         this.activeJob = null;
+        this.jobFinished.trigger(this.activeJob);
+        return this.updateJob(this.activeJob, true).then(() => {
+            return this.unlockJob(this.activeJob.name);
+        });
     }
     async stop() {
         clearTimeout(this.timer);
@@ -189,7 +201,7 @@ export class AtomScheduler {
             await this.jobDefinitions.get(this.activeJob.name).cancelToken.cancel();
         }
         this.started = false;
-        this.jobFinished();
+        return this.afterJobFinished();
     }
     private async doJob(job: AtomJob): Promise<boolean> {
         return this.activeJob.perform(this.jobDefinitions.get(job.name).func, this.jobDefinitions.get(job.name).data, this.jobDefinitions.get(job.name).cancelToken);
