@@ -11,8 +11,10 @@ describe("MySQLAdapter", () => {
         await adapter.deleteJob(job2Name, true);
         done();
     });
-    afterEach(() => {
-
+    afterEach(async (done) => {
+        await adapter.deleteJob(job1Name, true);
+        await adapter.deleteJob(job2Name, true);
+        done();
     });
     it("should create job", async (done) => {
         let job1 = await adapter.saveJob(new AtomJob(job1Name, 'tomorrow'));
