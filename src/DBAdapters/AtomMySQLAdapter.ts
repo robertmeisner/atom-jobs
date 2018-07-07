@@ -80,15 +80,18 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
 
     async getAllJobs(conditions?: { field: string, operator?: string, value: string }[]): Promise<AtomJob[]> {
         return AtomJobModel.query()
-            .where(function (builder) {
+            .where((builder) => {
+                console.log(conditions);
+                
                 if (conditions)
                     conditions.forEach(condition => {
                         if (condition.operator) {
-                            builder = builder.where(condition.field, condition.operator, condition.value);
+                            builder=builder.where(condition.field, condition.operator, condition.value);
                         } else {
-                            builder = builder.where(condition.field, condition.value);
+                            builder=builder.where(condition.field, condition.value);
                         }
                     });
+                    console.log('-----------------');
                 return builder;
             })
             .then((results) => {
@@ -99,6 +102,7 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
                 return Promise.resolve(jobs);
             })
             .catch((err) => {
+                console.log(err);
                 throw err;
             });
 

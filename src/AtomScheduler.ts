@@ -161,7 +161,7 @@ export class AtomScheduler {
     async getAllJobs(jobConditions?: string | { field: string, operator?: string, value: string }[]): Promise<AtomJob[]> {
         let conditions: { field: string, operator?: string, value: string }[] = [];
         if (typeof jobConditions === 'string') {
-            conditions.push({ field: 'name', operator: 'like', value: jobConditions + '%' });
+            conditions.push({ field: 'name', operator: 'like', value: jobConditions + ':%' });
         } else {
             conditions = jobConditions;
         }

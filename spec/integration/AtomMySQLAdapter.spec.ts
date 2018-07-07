@@ -6,14 +6,18 @@ describe("MySQLAdapter", () => {
 
     const job1Name = "job1Name";
     const job2Name = "job2Name";
-    beforeEach(async (done) => {
+    let clean = (async () => {
         await adapter.deleteJob(job1Name, true);
         await adapter.deleteJob(job2Name, true);
+        await adapter.deleteJob('CRAWLER:' + job1Name, true);
+        await adapter.deleteJob('CRAWLER:' + job2Name, true);
+    });
+    beforeEach(async (done) => {
+        await clean();
         done();
     });
     afterEach(async (done) => {
-        await adapter.deleteJob(job1Name, true);
-        await adapter.deleteJob(job2Name, true);
+        await clean();
         done();
     });
     it("should create job", async (done) => {
@@ -51,4 +55,13 @@ describe("MySQLAdapter", () => {
         expect((await adapter.getAllJobs()).length).toBeGreaterThanOrEqual(2);
         done();
     });
+    it("should list jobs by flag", async (done) => {
+        let job1 = await adapter.saveJob(new AtomJob('CRAWLER:' + job1Name, 'tomorrow'));
+        let job2 = await adapter.saveJob(new AtomJob('CRAWLER:' + job2Name, 'tomorrow'));
+        expect((await adapter.getAllJobs([{ field: 'name', operator: 'like', value: 'CRAWLER:%' }])).length).toBe(2);
+        await adapter.deleteJob('CRAWLER:' + job1Name);
+        await adapter.deleteJob('CRAWLER:' + job2Name);
+        done();
+    });
+
 });
