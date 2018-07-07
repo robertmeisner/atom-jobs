@@ -23,10 +23,11 @@ export class AtomScheduler {
         })();
     }
     public ID;
-    private dBAdapter: AtomDBAdapter;
     public jobDefinitions: Map<string, { func: (job: AtomJob, data?: any) => Promise<boolean>, data: object, cancelToken: { cancel: Function } }> = new Map();
     public activeJob: AtomJob;
     public activeJobDoPromise: Promise<boolean>;
+    public tickTime=10 * 1000;
+    private dBAdapter: AtomDBAdapter;
     private started = false;
     private jobRunning = false;
     private timer;
@@ -147,12 +148,12 @@ export class AtomScheduler {
         }
         return Promise.resolve(undefined);
     }
-    async getAllJobs(jobConditions?: string): Promise<AtomJob[]>;
+    async getAllJobs(flag?: string): Promise<AtomJob[]>;
     async getAllJobs(jobConditions?: { field: string, operator?: string, value: string }[]): Promise<AtomJob[]>;
     async getAllJobs(jobConditions?: string | { field: string, operator?: string, value: string }[]): Promise<AtomJob[]> {
         let conditions: { field: string, operator?: string, value: string }[] = [];
         if (typeof jobConditions === 'string') {
-            conditions.push({ field: 'name', operator: 'like', value: jobConditions });
+            conditions.push({ field: 'name', operator: 'like', value: jobConditions+'%' });
         } else {
             conditions = jobConditions;
         }
@@ -177,7 +178,7 @@ export class AtomScheduler {
                     });
                 }
             }
-        }, 60 * 1000);
+        }, this.tickTime);
 
     }
     start() {
@@ -187,7 +188,7 @@ export class AtomScheduler {
         }
     }
     async afterJobFinished() {
-        
+
         this.jobRunning = false;
         this.activeJob = null;
         this.jobFinished.trigger(this.activeJob);
