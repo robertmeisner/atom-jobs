@@ -26,16 +26,24 @@ export class AtomScheduler {
     public jobDefinitions: Map<string, { func: (job: AtomJob, data?: any) => Promise<boolean>, data: object, cancelToken: { cancel: Function } }> = new Map();
     public activeJob: AtomJob;
     public activeJobDoPromise: Promise<boolean>;
-    public tickTime=10 * 1000;
+    public tickTime = 10 * 1000;
     private dBAdapter: AtomDBAdapter;
     private started = false;
     private jobRunning = false;
     private timer;
     private static instance: AtomScheduler;
-
+    /// EVENTS
     private _jobFinished = new AtomSchedulerEvent<AtomJob>();
     public get jobFinished(): AtomSchedulerEvent<AtomJob> {
         return this._jobFinished;
+    }
+    private _jobStarted = new AtomSchedulerEvent<AtomJob>();
+    public get jobStarted(): AtomSchedulerEvent<AtomJob> {
+        return this._jobStarted;
+    }
+    private _ticked = new AtomSchedulerEvent<void>();
+    public get ticked(): AtomSchedulerEvent<void> {
+        return this._ticked;
     }
 
     async createJob(job: AtomJob | object);
@@ -153,7 +161,7 @@ export class AtomScheduler {
     async getAllJobs(jobConditions?: string | { field: string, operator?: string, value: string }[]): Promise<AtomJob[]> {
         let conditions: { field: string, operator?: string, value: string }[] = [];
         if (typeof jobConditions === 'string') {
-            conditions.push({ field: 'name', operator: 'like', value: jobConditions+'%' });
+            conditions.push({ field: 'name', operator: 'like', value: jobConditions + '%' });
         } else {
             conditions = jobConditions;
         }
@@ -161,12 +169,14 @@ export class AtomScheduler {
     }
     private processJobs() {
         this.timer = setTimeout(async () => {
+            this.ticked.trigger();
             if (this.started && !this.activeJob) {
                 let jobName;
                 this.activeJob = await this.getNextJob();
                 if (this.activeJob) {
                     jobName = this.activeJob.name;
                     this.activeJobDoPromise = this.doJob(this.activeJob);
+                    this.jobStarted.trigger(this.activeJob);
                     this.jobRunning = true;
                     this.activeJobDoPromise.then((value: boolean) => {
                         console.log("Job " + jobName + " finished result: ", value);
