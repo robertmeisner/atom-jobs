@@ -26,10 +26,6 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
     }
     async saveJob(job: AtomJob | any): Promise<AtomJob> {
 
-        let jobExists: AtomJob = await this.getJob(job.name);
-        if (jobExists) {
-            throw new AtomSchedulerError("You can't save job if it exists. " + job.name + " already exists.");
-        }
         let results = await AtomJobModel.query().insert(job as Partial<AtomJobModel>);
         if (results)
             return this.getJob(results['name']);

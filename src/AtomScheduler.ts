@@ -184,7 +184,7 @@ export class AtomScheduler {
         }
         this.started = false;
         this.activeJob.schedulerID = null;
-        this.dBAdapter.saveJob(this.activeJob);
+        this.updateJob(this.activeJob,true);
         await this.unlockJob(this.activeJob.name);
         this.activeJob = null;
     }
