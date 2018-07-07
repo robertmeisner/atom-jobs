@@ -1,7 +1,6 @@
 import { AtomDBAdapter } from "./AtomDBAdapter";
 import { AtomJob, AtomJobStatus } from "./AtomJob";
 import { AtomSchedulerError } from "./AtomSchedulerError";
-import { Exception } from "handlebars";
 var crypto = require('crypto');
 export class AtomScheduler {
     constructor(db: AtomDBAdapter) {
@@ -182,7 +181,7 @@ export class AtomScheduler {
         if (!AtomScheduler.instance) {
             if(!firstConfig)
             {
-                throw new Exception("Initialize scheduler with storage config data first.");
+                throw new AtomSchedulerError("Initialize scheduler with storage config data first.");
             }
             AtomScheduler.instance = new AtomScheduler(firstConfig);
             // ... any one time initialization goes here ...
