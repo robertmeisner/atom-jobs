@@ -198,12 +198,12 @@ export class AtomScheduler {
         }
     }
     async afterJobFinished() {
-
-        this.jobRunning = false;
+        let job=this.activeJob;
         this.activeJob = null;
-        this.jobFinished.trigger(this.activeJob);
-        return this.updateJob(this.activeJob, true).then(() => {
-            return this.unlockJob(this.activeJob.name);
+        this.jobRunning = false;
+        this.jobFinished.trigger(job);
+        return this.updateJob(job, true).then(() => {
+            return this.unlockJob(job.name);
         });
     }
     async stop() {
