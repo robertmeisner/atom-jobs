@@ -41,7 +41,7 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
         if (!await this.getJob(job.name)) {
             throw new AtomSchedulerError("You can update only existing job. " + job.name + " doesn't exist.");
         }
-        return AtomJobModel.query().patch(job as Partial<AtomJobModel>).where('name', job.name).skipUndefined().limit(1)
+        return AtomJobModel.query().patch(job as Partial<AtomJobModel>).where('name', job.name).limit(1)
             .then((numUpdated) => {
                 if (numUpdated)
                     return this.getJob(job.name)
