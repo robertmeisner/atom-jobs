@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.9.3"></a>
+## [0.9.3](https://github.com/robertmeisner/atom-jobs/compare/v0.9.2...v0.9.3) (2018-07-07)
+
+
+### Bug Fixes
+
+* **tests:** Add tests for flag filtering ([cf83775](https://github.com/robertmeisner/atom-jobs/commit/cf83775))
+
+
+
 <a name="0.9.2"></a>
 ## [0.9.2](https://github.com/robertmeisner/atom-jobs/compare/v0.9.1...v0.9.2) (2018-07-07)
 
