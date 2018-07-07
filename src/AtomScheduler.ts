@@ -27,7 +27,7 @@ export class AtomScheduler {
     public activeJobDoPromise: Promise<boolean>;
     private started = false;
     private timer;
-    private static instance:AtomScheduler;
+    private static instance: AtomScheduler;
 
     async createJob(job: AtomJob | object);
     async createJob(jobName: string, when?: string, func?: (job: AtomJob, data?: {}, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob>;
@@ -151,8 +151,16 @@ export class AtomScheduler {
         }
         return Promise.resolve(undefined);
     }
-    async getAllJobs(): Promise<AtomJob[]> {
-        return this.dBAdapter.getAllJobs();
+    async getAllJobs(jobConditions?: string): Promise<AtomJob[]>;
+    async getAllJobs(jobConditions?: {field:string,operator?:string,value:string}[]): Promise<AtomJob[]>;
+    async getAllJobs(jobConditions?: string | {field:string,operator?:string,value:string}[]): Promise<AtomJob[]> {
+        let conditions: {field:string,operator?:string,value:string}[] = [];
+        if (typeof jobConditions === 'string') {
+            conditions.push({field:'name',operator:'like',value:jobConditions});
+        } else {
+            conditions = jobConditions;
+        }
+        return this.dBAdapter.getAllJobs(conditions);
     }
     start() {
         if (!this.started) {
@@ -179,8 +187,7 @@ export class AtomScheduler {
     }
     static getInstance(firstConfig?) {
         if (!AtomScheduler.instance) {
-            if(!firstConfig)
-            {
+            if (!firstConfig) {
                 throw new AtomSchedulerError("Initialize scheduler with storage config data first.");
             }
             AtomScheduler.instance = new AtomScheduler(firstConfig);

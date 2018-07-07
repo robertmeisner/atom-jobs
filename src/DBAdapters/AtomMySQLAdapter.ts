@@ -82,8 +82,19 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
 
     }
 
-    async getAllJobs(): Promise<AtomJob[]> {
+    async getAllJobs(conditions?: { field: string, operator?: string, value: string }[]): Promise<AtomJob[]> {
         return AtomJobModel.query()
+            .where(function (builder) {
+                if (conditions)
+                    conditions.forEach(condition => {
+                        if (condition.operator) {
+                            builder = builder.where(condition.field, condition.operator, condition.value);
+                        } else {
+                            builder = builder.where(condition.field, condition.value);
+                        }
+                    });
+                return builder;
+            })
             .then((results) => {
                 let jobs: AtomJob[] = [];
                 results.forEach((value, index) => {

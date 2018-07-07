@@ -5,5 +5,5 @@ export interface AtomDBAdapter {
     updateJob(job: AtomJob | any): Promise<AtomJob>;
     deleteJob(jobName: string, force?: boolean): Promise<boolean>;
     getJob(jobName: string): Promise<AtomJob>;
-    getAllJobs(conditions?: { statuses?: AtomJobStatus[] }): Promise<AtomJob[]>;
+    getAllJobs(conditions?:  {field:string,operator?:string,value:string}[]): Promise<AtomJob[]>;
 }
