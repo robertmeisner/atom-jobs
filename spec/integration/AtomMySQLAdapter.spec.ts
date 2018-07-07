@@ -46,7 +46,7 @@ describe("MySQLAdapter", () => {
     it("should list all jobs", async (done) => {
         let job1 = await adapter.saveJob(new AtomJob(job1Name, 'tomorrow'));
         let job2 = await adapter.saveJob(new AtomJob(job2Name, 'tomorrow'));
-        expect((await adapter.getAllJobs()).length).toBe(2);
+        expect((await adapter.getAllJobs()).length).toBeGreaterThanOrEqual(2);
         done();
     });
 });
