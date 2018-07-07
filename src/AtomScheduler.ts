@@ -44,7 +44,19 @@ export class AtomScheduler {
             job = await this.defineJob(job.name, func, data);
         return this.getJob(job.name);
     }
-    async updateJob(job: AtomJob) {
+    /**
+     * Updates job using DBAdapter.
+     * Properties 'schedulerID', 'status','started','finished','timeElapsed' are not saved by default.
+     * Use forceProperties to save them.
+     * @param {Object} job - Job data. AtomJob or POJsO.
+     * @param {boolean} forceProperties - Forces update to include all properties. 
+     */
+    async updateJob(job: AtomJob | object, forceProperties?: boolean) {
+        let skipFields = ['schedulerID', 'status','started','finished','timeElapsed'];
+        for (const prop in skipFields) {
+            if (!forceProperties && prop in job)
+                delete job[prop];
+        }
         return this.dBAdapter.updateJob(job);
     }
     async defineJob(jobName: string, func?: (job: AtomJob, data?: any, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob> {
@@ -74,7 +86,6 @@ export class AtomScheduler {
                 }
                 if (this.activeJob) {
                     jobName = this.activeJob.name;
-                    let jobDone: boolean = false;
                     this.activeJobDoPromise = this.doJob(this.activeJob);
                     this.activeJobDoPromise.then((value: boolean) => {
                         console.log("Job " + jobName + " finished result: ", value);
@@ -185,7 +196,7 @@ export class AtomScheduler {
     hasStarted(): boolean {
         return this.started;
     }
-    static getInstance(db?:AtomDBAdapter) {
+    static getInstance(db?: AtomDBAdapter) {
         if (!AtomScheduler.instance) {
             if (!db) {
                 throw new AtomSchedulerError("Initialize scheduler with storage config data first.");
