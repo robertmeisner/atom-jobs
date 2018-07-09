@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="0.9.5"></a>
+## [0.9.5](https://github.com/robertmeisner/atom-jobs/compare/v0.9.4...v0.9.5) (2018-07-09)
+
+
+### Bug Fixes
+
+* Fixed Atom Job to plan always on forward date ([776770f](https://github.com/robertmeisner/atom-jobs/commit/776770f))
+
+
+
 <a name="0.9.4"></a>
 ## [0.9.4](https://github.com/robertmeisner/atom-jobs/compare/v0.9.3...v0.9.4) (2018-07-07)
 
