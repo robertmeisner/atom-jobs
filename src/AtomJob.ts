@@ -53,7 +53,7 @@ export class AtomJob {
         this.status = AtomJobStatus.Waiting;
     }
     private refreshPlannedOn() {
-        this.plannedOn = chrono.parseDate(this.plannedString, this.started);
+        this.plannedOn = chrono.parseDate(this.plannedString, this.started, {forwardDate: true});
     }
     async perform(func: (job: AtomJob, data?: object, cancelTocken?: { cancel: Function }) => Promise<boolean>, data: object, cancelToken: { cancel: Function }): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
