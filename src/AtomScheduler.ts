@@ -46,8 +46,24 @@ export class AtomScheduler {
         return this._ticked;
     }
 
+    /**
+     * Creates and persists job if it doesn't exist
+     * @param job 
+     */
     async createJob(job: AtomJob | object);
+    /**
+     * Creates and persists job if it doesn't exist
+     * @param jobName
+     * @param when
+     * @param metadata
+     */
     async createJob(jobName: string, when?: string, metadata?: object): Promise<AtomJob>;
+    /**
+     * Creates and persists job if it doesn't exist
+     * @param jobName
+     * @param when
+     * @param metadata
+     */
     async createJob(jobName: string | AtomJob | object, when?: string, metadata?: object): Promise<AtomJob> {
         let job: AtomJob;
         if (typeof jobName !== 'string') {
