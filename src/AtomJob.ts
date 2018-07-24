@@ -10,6 +10,10 @@ export enum AtomJobStatus {
     Waiting = "Waiting",
     Timeout = "Timeout"
 }
+export enum AtomJobDateMode {
+    AfterStarted = "AfterStarted",
+    AfterFinished = "AfterFinished"
+}
 const promiseTimeout = function (ms, promise): Promise<any> {
 
     // Create a promise that rejects in <ms> milliseconds
@@ -40,20 +44,28 @@ export class AtomJob {
     public previousTimeElapsed?: number;
     public lastErrorJSON?: string;
     public schedulerID?: string;
-    public timeout: number = 10 * 60 * 1000; 
+    public timeout: number = 10 * 60 * 1000;
     public isRecurring = true;
-    public metadata:string;
-
-    constructor(name: string, when: string, metadataObject:object={}, isRecurring: boolean = true) {
+    public dateMode: AtomJobDateMode;
+    public metadata: string;
+    /**
+     * AtomJob objects hold information about Scheduled Job state.
+     * @param name 
+     * @param when 
+     * @param metadataObject 
+     * @param options 
+     */
+    constructor(name: string, when: string, metadataObject: object = {}, options: { isRecurring?: boolean, dateMode?: AtomJobDateMode } = { isRecurring: true, dateMode: AtomJobDateMode.AfterStarted }) {
         this.name = name;
         this.plannedString = when;
         this.refreshPlannedOn();
-        this.metadataObject=metadataObject;
-        this.isRecurring = isRecurring;
+        this.metadataObject = metadataObject;
+        this.isRecurring = options['isRecurring'] ? options.isRecurring : true;
+        this.dateMode = options['dateMode'] ? options.dateMode : AtomJobDateMode.AfterStarted;
         this.status = AtomJobStatus.Waiting;
     }
     private refreshPlannedOn() {
-        this.plannedOn = chrono.parseDate(this.plannedString, this.started, {forwardDate: true});
+        this.plannedOn = chrono.parseDate(this.plannedString, this.started, { forwardDate: true });
     }
     async perform(func: (job: AtomJob, data?: object, cancelTocken?: { cancel: Function }) => Promise<boolean>, data: object, cancelToken: { cancel: Function }): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
@@ -83,7 +95,7 @@ export class AtomJob {
                         this.timeElapsed = this.finished.getTime() - this.started.getTime();
                     });
             } else {
-                reject(new AtomSchedulerError("Job " + this.name + " shouldn't run. It's status is: " + this.status+" and plannedOn: "+this.plannedOn));
+                reject(new AtomSchedulerError("Job " + this.name + " shouldn't run. It's status is: " + this.status + " and plannedOn: " + this.plannedOn));
             }
         });
 
@@ -105,11 +117,11 @@ export class AtomJob {
     public couldRun() {
         return [AtomJobStatus.Failed, AtomJobStatus.Finished, AtomJobStatus.Stopped, AtomJobStatus.Timeout, AtomJobStatus.Waiting].includes(this.status) && this.plannedOn <= new Date();
     }
-    public get metadataObject() : object {
+    public get metadataObject(): object {
         return JSON.parse(this.metadata);
     }
-    
-    public set metadataObject(v : object){
+
+    public set metadataObject(v: object) {
         this.metadata = JSON.stringify(v);
     }
 }
