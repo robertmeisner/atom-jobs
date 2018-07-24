@@ -23,9 +23,9 @@ export class AtomScheduler {
         })();
     }
     public ID;
-    public jobDefinitions: Map<string, { func: (job: AtomJob, data?: any) => Promise<boolean>, data: object, cancelToken: { cancel: Function } }> = new Map();
+    public jobDefinitions: Map<string, { func: (job: AtomJob, data?: any) => Promise<any>, data: object, cancelToken: { cancel: Function } }> = new Map();
     public activeJob: AtomJob;
-    public activeJobDoPromise: Promise<boolean>;
+    public activeJobDoPromise: Promise<any>;
     public tickTime = 10 * 1000;
     private dBAdapter: AtomDBAdapter;
     private started = false;
@@ -90,7 +90,7 @@ export class AtomScheduler {
         }
         return this.dBAdapter.updateJob(job);
     }
-    async defineJob(jobName: string, func?: (job: AtomJob, data?: any, cancelTocken?: { cancel: Function }) => Promise<boolean>, data?: object): Promise<AtomJob> {
+    async defineJob(jobName: string, func?: (job: AtomJob, data?: any, cancelTocken?: { cancel: Function }) => Promise<any>, data?: object): Promise<AtomJob> {
         return this.dBAdapter.getJob(jobName)
             .then((job) => {
                 if (!job) {
@@ -227,7 +227,7 @@ export class AtomScheduler {
         this.started = false;
         return this.afterJobFinished();
     }
-    private async doJob(job: AtomJob): Promise<boolean> {
+    private async doJob(job: AtomJob): Promise<any> {
         return this.activeJob.perform(this.jobDefinitions.get(job.name).func, this.jobDefinitions.get(job.name).data, this.jobDefinitions.get(job.name).cancelToken);
     }
     hasStarted(): boolean {

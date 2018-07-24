@@ -67,13 +67,12 @@ export class AtomJob {
     private refreshPlannedOn() {
         this.plannedOn = chrono.parseDate(this.plannedString, this.started, { forwardDate: true });
     }
-    async perform(func: (job: AtomJob, data?: object, cancelTocken?: { cancel: Function }) => Promise<boolean>, data: object, cancelToken: { cancel: Function }): Promise<boolean> {
-        return new Promise<boolean>((resolve, reject) => {
+    async perform(func: (job: AtomJob, data?: object, cancelTocken?: { cancel: Function }) => Promise<any>, data: object, cancelToken: { cancel: Function }): Promise<any> {
+        return new Promise<any>((resolve, reject) => {
             if (this.couldRun()) {
                 this.status = AtomJobStatus.Pending;
                 this.started = new Date();
                 this.timeElapsed = 0;
-                var startTime = new Date();
                 let doIt = promiseTimeout(this.timeout, func(this, data, cancelToken))
                     .then(response => {// Wait for the promise to get resolved
                         this.status = AtomJobStatus.Finished;
