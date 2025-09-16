@@ -5,8 +5,9 @@ import { AtomSchedulerEvent, IAtomEvent } from "./AtomEvent";
 
 var crypto = require('crypto');
 export class AtomScheduler {
-    constructor(db: AtomDBAdapter) {
+    constructor(db: AtomDBAdapter, verbose?: boolean) {
         this.dBAdapter = db;
+        this.verbose = verbose || false;
         this.ID = (() => {
             let array;
             if (process && (+process.version.substr(0, process.version.indexOf('.')).substr(1) >= 9)) {
@@ -27,6 +28,7 @@ export class AtomScheduler {
     public activeJob: AtomJob;
     public activeJobDoPromise: Promise<any>;
     public tickTime = 10 * 1000;
+    private verbose: boolean;
     private dBAdapter: AtomDBAdapter;
     private started = false;
     private jobRunning = false;
@@ -44,6 +46,14 @@ export class AtomScheduler {
     private _ticked = new AtomSchedulerEvent<void>();
     public get ticked(): AtomSchedulerEvent<void> {
         return this._ticked;
+    }
+
+    private verboseLog(message: string, job?: AtomJob): void {
+        if (this.verbose) {
+            const timestamp = new Date().toISOString();
+            const jobInfo = job ? ` [Job: ${job.name}]` : '';
+            console.log(`[AtomScheduler ${timestamp}]${jobInfo} ${message}`);
+        }
     }
 
     /**
@@ -186,16 +196,18 @@ export class AtomScheduler {
     private processJobs() {
         this.timer = setInterval(async () => {
             this.ticked.trigger();
+            this.verboseLog("Looking for jobs to run (scheduler tick)");
             if (this.started && !this.activeJob) {
                 this.activeJob = await this.getNextJob();
                 if (this.activeJob) {
+                    this.verboseLog("Starting job", this.activeJob);
                     this.activeJobDoPromise = this.doJob(this.activeJob);
                     this.jobStarted.trigger(this.activeJob);
                     this.jobRunning = true;
                     this.activeJobDoPromise.then((value: boolean) => {
-                        //console.log("Job " + jobName + " finished result: ", value);
+                        this.verboseLog(`Job completed successfully with result: ${value}`, this.activeJob);
                     }).catch(reason => {
-                        //console.log("Job " + jobName + " failed: ", reason);
+                        this.verboseLog(`Job failed with error: ${reason}`, this.activeJob);
                     }).finally(() => {
                         this.afterJobFinished();
                     });
@@ -207,11 +219,13 @@ export class AtomScheduler {
     start() {
         if (!this.started) {
             this.started = true;
+            this.verboseLog("Scheduler started");
             this.processJobs();
         }
     }
     async afterJobFinished() {
         let job = this.activeJob;
+        this.verboseLog("Job finished", job);
         this.activeJob = null;
         this.jobRunning = false;
         this.jobFinished.trigger(job);
@@ -220,12 +234,15 @@ export class AtomScheduler {
         });
     }
     async stop() {
+        this.verboseLog("Scheduler stopping");
         clearTimeout(this.timer);
-        if (this.activeJob.status === AtomJobStatus.Pending) {
+        if (this.activeJob && this.activeJob.status === AtomJobStatus.Pending) {
             await this.jobDefinitions.get(this.activeJob.name).cancelToken.cancel();
         }
         this.started = false;
-        return this.afterJobFinished();
+        if (this.activeJob) {
+            return this.afterJobFinished();
+        }
     }
     private async doJob(job: AtomJob): Promise<any> {
         return this.activeJob.perform(this.jobDefinitions.get(job.name).func, this.jobDefinitions.get(job.name).data, this.jobDefinitions.get(job.name).cancelToken);
@@ -233,12 +250,12 @@ export class AtomScheduler {
     hasStarted(): boolean {
         return this.started;
     }
-    static getInstance(db?: AtomDBAdapter) {
+    static getInstance(db?: AtomDBAdapter, verbose?: boolean) {
         if (!AtomScheduler.instance) {
             if (!db) {
                 throw new AtomSchedulerError("Initialize scheduler with storage config data first.");
             }
-            AtomScheduler.instance = new AtomScheduler(db);
+            AtomScheduler.instance = new AtomScheduler(db, verbose);
             // ... any one time initialization goes here ...
         }
         return AtomScheduler.instance;
