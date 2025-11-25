@@ -116,4 +116,42 @@ describe("Scheduler", () => {
         done();
     });
 
+    describe("Verbose logging", () => {
+        let verboseScheduler: AtomScheduler;
+        let consoleSpy: jasmine.Spy;
+
+        beforeEach(function () {
+            JOBS = new Map();
+            consoleSpy = spyOn(console, "log");
+            verboseScheduler = new AtomScheduler(DBMock, true);
+        });
+
+        it("should log when verbose is enabled", () => {
+            verboseScheduler.start();
+            expect(consoleSpy).toHaveBeenCalledWith(jasmine.stringMatching(/\[AtomScheduler.*\] Scheduler started/));
+        });
+
+        it("should not log when verbose is disabled", () => {
+            let nonVerboseScheduler = new AtomScheduler(DBMock, false);
+            nonVerboseScheduler.start();
+            expect(consoleSpy).not.toHaveBeenCalled();
+        });
+
+        it("should default to non-verbose when verbose parameter is not provided", () => {
+            let defaultScheduler = new AtomScheduler(DBMock);
+            defaultScheduler.start();
+            expect(consoleSpy).not.toHaveBeenCalled();
+        });
+
+        it("should include job information in verbose logs", async () => {
+            let job = await verboseScheduler.createJob("TestJob", "yesterday");
+            await verboseScheduler.defineJob("TestJob", () => Promise.resolve(true), {});
+            
+            // Trigger the verbose log manually
+            (verboseScheduler as any).verboseLog("Test message", job);
+            
+            expect(consoleSpy).toHaveBeenCalledWith(jasmine.stringMatching(/\[AtomScheduler.*\]\s*\[Job: TestJob\] Test message/));
+        });
+    });
+
 }); 
