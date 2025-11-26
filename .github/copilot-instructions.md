@@ -72,7 +72,7 @@ import { AtomJob, AtomJobStatus } from "./AtomJob";
 Use `require` for CommonJS modules without type definitions:
 
 ```typescript
-var chrono = require('chrono-node');
+const chrono = require('chrono-node');
 ```
 
 ### Error Handling
@@ -124,11 +124,9 @@ describe("FeatureName", () => {
         expect(instance.property).toEqual("expectedValue");
     });
 
-    it("should handle async operations", async (done) => {
-        await instance.asyncMethod().then((result) => {
-            expect(result).toBeTruthy();
-            done();
-        });
+    it("should handle async operations", async () => {
+        const result = await instance.asyncMethod();
+        expect(result).toBeTruthy();
     });
 });
 ```
