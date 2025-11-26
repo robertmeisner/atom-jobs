@@ -69,7 +69,7 @@ import { AtomSchedulerError } from "./AtomSchedulerError";
 import { AtomJob, AtomJobStatus } from "./AtomJob";
 ```
 
-Use `require` for CommonJS modules without type definitions:
+Use `require` for CommonJS modules without type definitions (matches existing codebase pattern):
 
 ```typescript
 const chrono = require('chrono-node');
@@ -95,7 +95,7 @@ Follow the existing class structure with:
 - Public properties declared at class level
 - Constructor for initialization
 - Static factory methods when needed (e.g., `AtomJob.create()`)
-- Async methods returning `Promise<any>` for operations
+- Async methods returning Promises (use specific types when possible, `Promise<any>` to match existing patterns)
 
 ## Testing Guidelines
 
