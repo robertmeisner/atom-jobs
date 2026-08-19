@@ -1,39 +1,61 @@
-import { AtomDBAdapter } from "./AtomDBAdapter";
-import { AtomJob, AtomJobStatus } from "./AtomJob";
+import { AtomDBAdapter, AtomJobCondition } from "./AtomDBAdapter";
+import { AtomJob, AtomJobCancellationToken, AtomJobOptions, AtomJobStatus } from "./AtomJob";
 import { AtomSchedulerError } from "./AtomSchedulerError";
-import { AtomSchedulerEvent, IAtomEvent } from "./AtomEvent";
+import { AtomSchedulerEvent } from "./AtomEvent";
 
 var crypto = require('crypto');
+
+export interface AtomSchedulerOptions {
+    verbose?: boolean;
+    tickTime?: number;
+    id?: string;
+}
+
+export type AtomJobHandler = (job: AtomJob, data?: any, cancelToken?: AtomJobCancellationToken) => Promise<any>;
+
+interface AtomJobDefinition {
+    func: AtomJobHandler;
+    data: object;
+    cancelToken: AtomJobCancellationToken;
+}
+
 export class AtomScheduler {
-    constructor(db: AtomDBAdapter, verbose?: boolean) {
+    constructor(db: AtomDBAdapter, verboseOrOptions?: boolean | AtomSchedulerOptions) {
         this.dBAdapter = db;
-        this.verbose = verbose || false;
-        this.ID = (() => {
-            let array;
-            if (process && (+process.version.substr(0, process.version.indexOf('.')).substr(1) >= 9)) {
-                array = (new Uint32Array(8)); //node 9+
-            } else {
-                array = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]);
-            }
-            crypto.randomFillSync(array);
-            let str = '';
-            for (let i = 0; i < array.length; i++) {
-                str += (i < 2 || i > 5 ? '' : '-') + array[i].toString(16).slice(-4)
-            }
-            return str;
-        })();
+        let options: AtomSchedulerOptions = {};
+        if (typeof verboseOrOptions === "boolean") {
+            options.verbose = verboseOrOptions;
+        } else {
+            options = verboseOrOptions || {};
+        }
+
+        this.verbose = options.verbose || false;
+        this.tickTime = options.tickTime || this.tickTime;
+        this.ID = options.id || AtomScheduler.createID();
     }
-    public ID;
-    public jobDefinitions: Map<string, { func: (job: AtomJob, data?: any) => Promise<any>, data: object, cancelToken: { cancel: Function } }> = new Map();
-    public activeJob: AtomJob;
-    public activeJobDoPromise: Promise<any>;
+    private static createID(): string {
+        if (crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+
+        const buffer = new Uint8Array(16);
+        crypto.randomFillSync(buffer);
+        return Array.from(buffer).map((value: number) => value.toString(16).padStart(2, "0")).join("");
+    }
+
+    public ID: string;
+    public jobDefinitions: Map<string, AtomJobDefinition> = new Map();
+    public activeJob?: AtomJob;
+    public activeJobDoPromise?: Promise<any>;
     public tickTime = 10 * 1000;
     private verbose: boolean;
     private dBAdapter: AtomDBAdapter;
     private started = false;
-    private jobRunning = false;
-    private timer;
+    private timer: any;
+    private processingTick = false;
+    private activeJobFinalization?: Promise<void>;
     private static instance: AtomScheduler;
+
     /// EVENTS
     private _jobFinished = new AtomSchedulerEvent<AtomJob>();
     public get jobFinished(): AtomSchedulerEvent<AtomJob> {
@@ -68,23 +90,40 @@ export class AtomScheduler {
      * @param metadata
      */
     async createJob(jobName: string, when?: string, metadata?: object): Promise<AtomJob>;
+    async createJob(jobName: string, when?: string, metadata?: object, options?: AtomJobOptions): Promise<AtomJob>;
     /**
      * Creates and persists job if it doesn't exist
      * @param jobName
      * @param when
      * @param metadata
      */
-    async createJob(jobName: string | AtomJob | object, when?: string, metadata?: object): Promise<AtomJob> {
+    async createJob(jobName: string | AtomJob | object, when?: string, metadata?: object, options?: AtomJobOptions): Promise<AtomJob> {
         let job: AtomJob;
-        if (typeof jobName !== 'string') {
-            job = <AtomJob>jobName;
+        if (typeof jobName === "string") {
+            if (!when) {
+                throw new AtomSchedulerError("When value is required for job " + jobName + ".");
+            }
+            job = new AtomJob(jobName, when, metadata || {}, options);
+        } else if (jobName instanceof AtomJob) {
+            job = jobName;
         } else {
-            job = new AtomJob(<string>jobName, when);
+            job = AtomJob.create(jobName);
         }
-        if (!await this.jobExists(job.name))
+
+        if (!await this.jobExists(job.name)) {
             job = await this.dBAdapter.saveJob(job);
-        return this.getJob(job.name);
+        }
+        const storedJob = await this.getJob(job.name);
+        if (!storedJob) {
+            throw new AtomSchedulerError("Job " + job.name + " could not be loaded after creation.");
+        }
+        return storedJob;
     }
+
+    async scheduleJob(jobName: string, when: string, metadata?: object, options?: AtomJobOptions): Promise<AtomJob> {
+        return this.createJob(jobName, when, metadata, options);
+    }
+
     /**
      * Updates job using DBAdapter.
      * Properties 'schedulerID', 'status','started','finished','timeElapsed' are not saved by default.
@@ -93,36 +132,50 @@ export class AtomScheduler {
      * @param {boolean} forceProperties - Forces update to include all properties. 
      */
     async updateJob(job: AtomJob | object, forceProperties?: boolean) {
-        let skipFields = ['schedulerID', 'status', 'started', 'finished', 'timeElapsed'];
-        for (const prop in skipFields) {
-            if (!forceProperties && prop in job)
-                delete job[prop];
+        const skipFields = ['schedulerID', 'status', 'started', 'finished', 'timeElapsed'];
+        const jobToUpdate = Object.assign({}, job);
+        if (!forceProperties) {
+            skipFields.forEach((field) => {
+                delete jobToUpdate[field];
+            });
         }
-        return this.dBAdapter.updateJob(job);
+        return this.dBAdapter.updateJob(jobToUpdate);
     }
-    async defineJob(jobName: string, func?: (job: AtomJob, data?: any, cancelTocken?: { cancel: Function }) => Promise<any>, data?: object): Promise<AtomJob> {
+
+    async defineJob(jobName: string, func?: AtomJobHandler, data?: object): Promise<AtomJob> {
+        return this.registerJob(jobName, func, data);
+    }
+
+    async registerJob(jobName: string, func?: AtomJobHandler, data?: object): Promise<AtomJob> {
+        if (!func) {
+            throw new AtomSchedulerError("Job " + jobName + " could not be defined. Missing handler.");
+        }
+
         return this.dBAdapter.getJob(jobName)
             .then((job) => {
                 if (!job) {
-                    throw new AtomSchedulerError("Job " + jobName + " could not be defined. Create the job first.")
+                    throw new AtomSchedulerError("Job " + jobName + " could not be defined. Create the job first.");
                 }
-                let cancelToken: { cancel: Function } = {
-                    cancel: () => {
-                        throw new AtomSchedulerError("Stopped Job " + job.name);
-                    }
+
+                const cancelToken: AtomJobCancellationToken = {
+                    cancel: () => undefined
                 };
-                this.jobDefinitions.set(jobName, { func: func, data: data, cancelToken: cancelToken })
-                return Promise.resolve((job));
+                this.jobDefinitions.set(jobName, { func, data: data || {}, cancelToken });
+                return Promise.resolve(job);
             })
             .catch((err) => {
                 throw err;
             });
     }
 
+    hasDefinition(jobName: string): boolean {
+        return this.jobDefinitions.has(jobName);
+    }
+
     async isJobLocked(jobName: string): Promise<boolean> {
         return this.dBAdapter.getJob(jobName)
             .then((job) => {
-                return Promise.resolve(Boolean(job.schedulerID));
+                return Promise.resolve(Boolean(job && job.schedulerID));
             })
             .catch((err) => {
                 throw err;
@@ -156,36 +209,39 @@ export class AtomScheduler {
                 throw err;
             });
     }
-    async getJob(jobName: string): Promise<AtomJob> {
+    async getJob(jobName: string): Promise<AtomJob | undefined> {
         return this.dBAdapter.getJob(jobName);
     }
-    async getNextJob(): Promise<AtomJob> {
-        let jobs: AtomJob[] = await this.getAllJobs();
+
+    async getNextJob(): Promise<AtomJob | undefined> {
+        const jobs = (await this.getAllJobs()).sort((jobA, jobB) => {
+            const dateA = jobA.plannedOn ? new Date(jobA.plannedOn).getTime() : 0;
+            const dateB = jobB.plannedOn ? new Date(jobB.plannedOn).getTime() : 0;
+            return dateA - dateB;
+        });
+
         for (let index = 0; index < jobs.length; index++) {
-            let job = jobs[index];
+            const job = jobs[index];
             if (job.canBeNext() && this.jobDefinitions.has(job.name)) {
                 await this.lockJob(job.name);
                 return this.getJob(job.name)
-                    .then((job) => {
-                        if (job.schedulerID == this.ID) {
-                            return Promise.resolve((job));
-                        } else {
-                            Promise.resolve(undefined);
+                    .then((lockedJob) => {
+                        if (lockedJob && lockedJob.schedulerID === this.ID) {
+                            return Promise.resolve(lockedJob);
                         }
+                        return Promise.resolve(undefined);
                     })
                     .catch((err) => {
                         throw err;
                     });
-            } else {
-                // skip
             }
         }
         return Promise.resolve(undefined);
     }
     async getAllJobs(flag?: string): Promise<AtomJob[]>;
-    async getAllJobs(jobConditions?: { field: string, operator?: string, value: string }[]): Promise<AtomJob[]>;
-    async getAllJobs(jobConditions?: string | { field: string, operator?: string, value: string }[]): Promise<AtomJob[]> {
-        let conditions: { field: string, operator?: string, value: string }[] = [];
+    async getAllJobs(jobConditions?: AtomJobCondition[]): Promise<AtomJob[]>;
+    async getAllJobs(jobConditions?: string | AtomJobCondition[]): Promise<AtomJob[]> {
+        let conditions: AtomJobCondition[] = [];
         if (typeof jobConditions === 'string') {
             conditions.push({ field: 'name', operator: 'like', value: jobConditions + ':%' });
         } else {
@@ -193,70 +249,145 @@ export class AtomScheduler {
         }
         return this.dBAdapter.getAllJobs(conditions);
     }
+
+    async listJobs(jobConditions?: string | AtomJobCondition[]): Promise<AtomJob[]> {
+        if (typeof jobConditions === "string") {
+            return this.getAllJobs(jobConditions);
+        }
+        return this.getAllJobs(jobConditions || []);
+    }
+
+    async removeJob(jobName: string, force?: boolean): Promise<boolean> {
+        return this.dBAdapter.deleteJob(jobName, force);
+    }
+
     private processJobs() {
-        this.timer = setInterval(async () => {
-            this.ticked.trigger();
-            this.verboseLog("Looking for jobs to run (scheduler tick)");
-            if (this.started && !this.activeJob) {
-                this.activeJob = await this.getNextJob();
-                if (this.activeJob) {
-                    this.verboseLog("Starting job", this.activeJob);
-                    this.activeJobDoPromise = this.doJob(this.activeJob);
-                    this.jobStarted.trigger(this.activeJob);
-                    this.jobRunning = true;
-                    this.activeJobDoPromise.then((value: boolean) => {
-                        this.verboseLog(`Job completed successfully with result: ${value}`, this.activeJob);
-                    }).catch(reason => {
-                        this.verboseLog(`Job failed with error: ${reason}`, this.activeJob);
-                    }).finally(() => {
-                        this.afterJobFinished();
-                    });
-                }
-            }
+        this.timer = setInterval(() => {
+            this.tick().catch((error) => {
+                this.verboseLog("Tick failed: " + error);
+            });
         }, this.tickTime);
 
     }
-    start() {
-        if (!this.started) {
-            this.started = true;
-            this.verboseLog("Scheduler started");
-            this.processJobs();
+
+    async tick(): Promise<void> {
+        if (!this.started || this.activeJob || this.processingTick) {
+            return;
+        }
+
+        this.processingTick = true;
+        this.ticked.trigger();
+        this.verboseLog("Looking for jobs to run (scheduler tick)");
+
+        try {
+            const nextJob = await this.getNextJob();
+            if (!nextJob) {
+                return;
+            }
+
+            this.activeJob = nextJob;
+            this.verboseLog("Starting job", this.activeJob);
+            this.jobStarted.trigger(this.activeJob);
+            this.activeJobDoPromise = this.doJob(this.activeJob);
+
+            try {
+                await this.activeJobDoPromise;
+                this.verboseLog("Job completed successfully", this.activeJob);
+            } catch (error) {
+                this.verboseLog("Job failed with error: " + error, this.activeJob);
+            } finally {
+                this.activeJobFinalization = this.afterJobFinished();
+                await this.activeJobFinalization;
+                this.activeJobFinalization = undefined;
+            }
+        } finally {
+            this.processingTick = false;
         }
     }
-    async afterJobFinished() {
-        let job = this.activeJob;
-        this.verboseLog("Job finished", job);
-        this.activeJob = null;
-        this.jobRunning = false;
-        this.jobFinished.trigger(job);
-        return this.updateJob(job, true).then(() => {
-            return this.unlockJob(job.name);
+
+    start() {
+        if (this.started) {
+            return;
+        }
+        this.started = true;
+        this.verboseLog("Scheduler started");
+        this.processJobs();
+        this.tick().catch((error) => {
+            this.verboseLog("Initial tick failed: " + error);
         });
     }
-    async stop() {
-        this.verboseLog("Scheduler stopping");
-        clearTimeout(this.timer);
-        if (this.activeJob && this.activeJob.status === AtomJobStatus.Pending) {
-            await this.jobDefinitions.get(this.activeJob.name).cancelToken.cancel();
+
+    async afterJobFinished() {
+        const job = this.activeJob;
+        this.verboseLog("Job finished", job);
+        this.activeJob = undefined;
+        this.activeJobDoPromise = undefined;
+        if (!job) {
+            return;
         }
+
+        this.jobFinished.trigger(job);
+        await this.updateJob(job, true);
+        await this.unlockJob(job.name);
+    }
+
+    async stop() {
+        if (!this.started) {
+            return;
+        }
+
+        this.verboseLog("Scheduler stopping");
         this.started = false;
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = undefined;
+        }
+
+        if (this.activeJob && this.activeJob.status === AtomJobStatus.Pending && this.jobDefinitions.has(this.activeJob.name)) {
+            try {
+                this.jobDefinitions.get(this.activeJob.name).cancelToken.cancel();
+            } catch (error) {
+                this.verboseLog("Cancel handler threw during stop for " + this.activeJob.name + ": " + error, this.activeJob);
+            }
+        }
+
+        if (this.activeJobDoPromise) {
+            try {
+                await this.activeJobDoPromise;
+            } catch (error) {
+                this.verboseLog("Active job completed with error during stop: " + error);
+            }
+        }
+
+        if (this.activeJobFinalization) {
+            await this.activeJobFinalization;
+            this.activeJobFinalization = undefined;
+        }
+
         if (this.activeJob) {
             return this.afterJobFinished();
         }
     }
+
     private async doJob(job: AtomJob): Promise<any> {
-        return this.activeJob.perform(this.jobDefinitions.get(job.name).func, this.jobDefinitions.get(job.name).data, this.jobDefinitions.get(job.name).cancelToken);
+        if (!this.jobDefinitions.has(job.name)) {
+            throw new AtomSchedulerError("Job " + job.name + " has no definition.");
+        }
+
+        const definition = this.jobDefinitions.get(job.name);
+        return job.perform(definition.func, definition.data, definition.cancelToken);
     }
+
     hasStarted(): boolean {
         return this.started;
     }
-    static getInstance(db?: AtomDBAdapter, verbose?: boolean) {
+
+    static getInstance(db?: AtomDBAdapter, verboseOrOptions?: boolean | AtomSchedulerOptions) {
         if (!AtomScheduler.instance) {
             if (!db) {
                 throw new AtomSchedulerError("Initialize scheduler with storage config data first.");
             }
-            AtomScheduler.instance = new AtomScheduler(db, verbose);
-            // ... any one time initialization goes here ...
+            AtomScheduler.instance = new AtomScheduler(db, verboseOrOptions);
         }
         return AtomScheduler.instance;
     }

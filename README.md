@@ -1,39 +1,102 @@
-[![Build Status](https://travis-ci.org/robertmeisner/atom-jobs.svg?branch=master)](https://travis-ci.org/robertmeisner/atom-jobs)
-[![Coverage Status](https://coveralls.io/repos/github/robertmeisner/atom-jobs/badge.svg?branch=master)](https://coveralls.io/github/robertmeisner/atom-jobs?branch=master)
-[![npm version](https://badge.fury.io/js/atom-jobs.svg)](https://badge.fury.io/js/atom-jobs)
 # atom-jobs
-Simple node.js job scheduler with DB Storage. 
 
-## Installation 
+Lean persistent job scheduler for Node.js projects.
+
+## Why this library
+
+- Lightweight scheduler loop with explicit `start`/`stop`
+- Natural language scheduling (`"in 5 minutes"`, `"tomorrow 09:00"`)
+- Pluggable storage adapters
+- Built-in in-memory adapter for local apps and tests
+- MySQL adapter for persisted distributed workloads
+
+## Installation
+
 ```sh
-npm install atom-jobs --save
-yarn add atom-jobs
-bower install atom-jobs --save
+npm install atom-jobs
 ```
-## Usage
-### Javascript
-```javascript
-var atomJobs = require('atom-jobs');
-//TODO
-```
-```sh
-Output should be '...'
-```
-### TypeScript
+
+## Quick start (in-memory)
+
 ```typescript
-import {  } from 'atom-jobs';
-//TODO
+import {
+  AtomInMemoryAdapter,
+  AtomScheduler
+} from "atom-jobs";
+
+const adapter = new AtomInMemoryAdapter();
+const scheduler = new AtomScheduler(adapter, { tickTime: 1000 });
+
+await scheduler.scheduleJob("report:daily", "in 2 seconds", { tenant: "acme" });
+
+await scheduler.registerJob("report:daily", async (job) => {
+  console.log("Running", job.name, job.metadataObject);
+}, {});
+
+scheduler.start();
 ```
-```sh
-Output should be '...'
-```
-### AMD
-```javascript
-define(function(require,exports,module){
-  var atomJobs = require('atom-jobs');
+
+## Persistent MySQL adapter
+
+```typescript
+import { AtomMySQLAdapter, AtomScheduler } from "atom-jobs";
+
+const adapter = new AtomMySQLAdapter({
+  client: "mysql",
+  connection: {
+    host: "127.0.0.1",
+    user: "root",
+    password: "",
+    database: "test"
+  }
 });
+
+const scheduler = new AtomScheduler(adapter, { tickTime: 2000 });
 ```
-## Test 
+
+Schema: `src/DBAdapters/schema/MySQL.sql`
+
+## Core API
+
+### Scheduler
+
+- `scheduleJob(name, when, metadata?, options?)`
+- `registerJob(name, handler, data?)`
+- `start()` / `stop()`
+- `tick()` for manual processing
+- `listJobs()` / `getJob(name)` / `removeJob(name, force?)`
+
+### Job lifecycle
+
+`Waiting -> Pending -> Finished | Failed | Timeout | Stopped`
+
+Non-recurring jobs (`isRecurring: false`) run once and stay finished.
+
+## Events
+
+- `scheduler.jobStarted.on(handler)`
+- `scheduler.jobFinished.on(handler)`
+- `scheduler.ticked.on(handler)`
+
+`on` returns an unsubscribe function.
+
+## Integration specs
+
+Integration specs are tests in `spec/integration/` that run against a real MySQL database.  
+They verify the storage adapter behavior end-to-end (insert/update/delete/query).
+
+Local setup:
+
+1. Start MySQL on `127.0.0.1:3306`
+2. Create database `test`
+3. Apply `src/DBAdapters/schema/MySQL.sql`
+4. Run `cross-env RUN_INTEGRATION_TESTS=true npm test`
+
+By default, `npm test` runs unit specs and skips integration specs unless `RUN_INTEGRATION_TESTS=true`.
+
+## Development
+
 ```sh
-npm run test
+npm run build
+npx jasmine-ts "./spec/unit/**/*.spec.ts"
 ```
