@@ -1,4 +1,4 @@
-import { AtomJob, AtomJobStatus } from "../../src/AtomJob";
+import { AtomJob, AtomJobDateMode, AtomJobStatus } from "../../src/AtomJob";
 import { AtomSchedulerError } from "../../src/AtomSchedulerError";
 require('../common');
 
@@ -30,15 +30,47 @@ describe("Job", () => {
             return Promise.resolve(true);
         }, {}, { cancel: null });
     });
-    it("shouldn't perform future job", async (done) => {
-        job.perform((job, data, cancelToken): Promise<boolean> => {
+    it("should retain an explicitly disabled recurrence setting", () => {
+        let nonRecurringJob = new AtomJob("OneTimeJob", "tomorrow", {}, { isRecurring: false });
+
+        expect(nonRecurringJob.isRecurring).toBeFalsy();
+    });
+    it("should not rerun a completed non-recurring job", () => {
+        let nonRecurringJob = new AtomJob("OneTimeJob", "yesterday", {}, { isRecurring: false });
+        nonRecurringJob.status = AtomJobStatus.Finished;
+        nonRecurringJob.plannedOn = new Date(Date.now() - 1);
+
+        expect(nonRecurringJob.couldRun()).toBeFalsy();
+    });
+    it("should use the completion time for after-finished schedules", () => {
+        let afterFinishedJob = new AtomJob("AfterFinishedJob", "in 1 day", {}, { dateMode: AtomJobDateMode.AfterFinished });
+        afterFinishedJob.started = new Date("2020-01-01T00:00:00.000Z");
+        afterFinishedJob.finished = new Date("2020-01-03T00:00:00.000Z");
+        (afterFinishedJob as any).refreshPlannedOn();
+
+        expect(afterFinishedJob.plannedOn.getTime()).toBe(new Date("2020-01-04T00:00:00.000Z").getTime());
+    });
+    it("should finalize synchronous job errors", async () => {
+        let error = new Error("Unexpected failure");
+
+        await job2.perform(() => {
+            throw error;
+        }, {}, { cancel: null }).catch((caughtError) => {
+            expect(caughtError).toBe(error);
+        });
+
+        expect(job2.status).toBe(AtomJobStatus.Failed);
+        expect(job2.finished).toBeDefined();
+        expect(job2.timeElapsed).toBeGreaterThanOrEqual(0);
+    });
+    it("shouldn't perform future job", async () => {
+        await job.perform((job, data, cancelToken): Promise<boolean> => {
             return Promise.resolve(true);
         }, {}, { cancel: null }).catch((error) => {
             expect(error).toBeTruthy();
-            done();
         });
     });
-    it("should check for timeout", async (done) => {
+    it("should check for timeout", async () => {
         job2.timeout = 20;
         let jobTime = 500;
         let p = await job2.perform(((job, data, cancelToken): Promise<boolean> => {
@@ -49,14 +81,12 @@ describe("Job", () => {
                 }, jobTime);
             });
         }), {}, { cancel: null }).catch((err) => {
-
-            done();
         });
         expect(job2.status).toEqual(AtomJobStatus.Timeout);
         expect(job2.timeElapsed).toBeLessThan(jobTime);
 
     })
-    it("should be cancelable", async (done) => {
+    it("should be cancelable", async () => {
         let token = { cancel: null };
         let p = job2.perform(((job, data, cancelToken): Promise<boolean> => {
             return new Promise((resolve, rej) => {
@@ -75,12 +105,11 @@ describe("Job", () => {
                 expect(job2.status).toBe(AtomJobStatus.Stopped);
                 expect(job2.timeElapsed).toBeLessThan(300);
                 expect(job2.timeElapsed).toBeGreaterThan(0);
-                done();
             });
         await new Promise(resolve => {
             setTimeout(resolve, 50)
         });
         token.cancel();
-
+        await p;
     })
 });

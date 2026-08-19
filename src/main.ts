@@ -1,10 +1,20 @@
-import { AtomDBAdapter } from "./AtomDBAdapter";
-import { AtomScheduler } from "./AtomScheduler";
+import { AtomScheduler, AtomJobHandler, AtomSchedulerOptions } from "./AtomScheduler";
 import { AtomSchedulerError } from "./AtomSchedulerError";
-import { AtomJob, AtomJobStatus } from "./AtomJob";
+import { AtomJob, AtomJobDateMode, AtomJobOptions, AtomJobStatus } from "./AtomJob";
 import { AtomMySQLAdapter } from "./DBAdapters/AtomMySQLAdapter";
+import { AtomInMemoryAdapter } from "./DBAdapters/AtomInMemoryAdapter";
 
-export interface AtomDBAdapter extends AtomDBAdapter { };
+export { AtomDBAdapter } from "./AtomDBAdapter";
+export { AtomJobCondition } from "./AtomDBAdapter";
 export {
-    AtomJob, AtomJobStatus, AtomScheduler, AtomSchedulerError, AtomMySQLAdapter
+    AtomJob,
+    AtomJobDateMode,
+    AtomJobHandler,
+    AtomJobOptions,
+    AtomJobStatus,
+    AtomScheduler,
+    AtomSchedulerError,
+    AtomSchedulerOptions,
+    AtomInMemoryAdapter,
+    AtomMySQLAdapter
 };

@@ -1,15 +1,28 @@
 {
   "name": "atom-jobs",
   "version": "0.9.7",
-  "description": "Simple node.js job scheduler with DB Storage.",
+  "description": "Lean persistent job scheduler for Node.js projects.",
   "main": "./dist/main.js",
   "typings": "./types/main.d.ts",
+  "types": "./types/main.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/main.d.ts",
+      "require": "./dist/main.js"
+    }
+  },
+  "files": [
+    "dist",
+    "types",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "cleanup": "shx rm -rf bundles esm5 esm2015 fesm types coverage docs package dist .nyc_output",
-    "prebuild": "yarn cleanup",
+    "prebuild": "npm run cleanup",
     "build": "tsc && tsc --target es2018 --outDir esm2015 ",
-    "prepare": "yarn build",
-    "test": "nyc -e .ts -x \"*.spec.ts\" jasmine-ts \"./spec/**/*.spec.ts\"",
+    "prepare": "npm run build",
+    "test": "shx mkdir -p .nyc_output/processinfo && nyc -e .ts -x \"*.spec.ts\" jasmine-ts \"./spec/**/*.spec.ts\"",
     "test-raw": "jasmine-ts \"./spec/**/*.spec.ts\"",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "docs": "typedoc -p . --theme minimal --target 'es6' --excludeNotExported --excludePrivate --ignoreCompilerErrors --exclude \"**/spec/**/*.*\" --out docs src/",
@@ -28,7 +41,9 @@
     "tasks",
     "scheduler",
     "runner",
-    "agenda"
+    "agenda",
+    "queue",
+    "background-jobs"
   ],
   "author": "Robert Meisner <robert@catchit.pl> (https://catchit.pl)",
   "license": "MIT",
@@ -38,28 +53,27 @@
   "homepage": "https://github.com/robertmeisner/atom-jobs#readme",
   "dependencies": {
     "chrono-node": "2.8.4",
-    "crypto": "^1.0.1",
-    "date.js": "^0.3.3",
+    "knex": "3.1.0",
+    "mysql": "2.18.1",
+    "objection": "3.1.5",
     "tslib": "1.9.3"
   },
   "devDependencies": {
     "@types/jasmine": "^2.8.8",
-    "@types/mysql": "types/mysql",
-    "@types/node": "^10.5.1",
+    "@types/mysql": "2.15.27",
+    "@types/node": "24.10.0",
     "coveralls-next": "6.0.1",
     "cross-env": "5.2.0",
     "dotenv": "6.0.0",
     "istanbul": "0.4.5",
     "jasmine": "^3.1.0",
     "jasmine-ts": "^0.4.0",
-    "knex": "3.1.0",
-    "mysql": "2.15.0",
     "nyc": "17.1.0",
-    "objection": "3.1.5",
     "shx": "^0.3.1",
     "standard-version": "^9.5.0",
     "typedoc": "^0.28.14",
-    "typescript": "^2.9.2",
+    "typescript": "5.9.3",
+    "ts-node": "10.9.2",
     "typescript-eslint-parser": "16.0.1"
   }
 }

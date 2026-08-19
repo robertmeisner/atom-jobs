@@ -1,4 +1,4 @@
-import { AtomDBAdapter } from '../AtomDBAdapter';
+import { AtomDBAdapter, AtomJobCondition } from '../AtomDBAdapter';
 import { AtomJob } from '../AtomJob';
 import { AtomSchedulerError } from '../AtomSchedulerError';
 import { Model } from 'objection';
@@ -16,93 +16,95 @@ class AtomJobModel extends Model {
 }
 
 export class AtomMySQLAdapter implements AtomDBAdapter {
-    private pool;
+    private knex: any;
+
     constructor(connection: object) {
-        // Initialize knex.
-        const knex = Knex(connection);
-
-        // Give the knex object to objection.
-        Model.knex(knex);
+        this.knex = Knex(connection);
+        Model.knex(this.knex);
     }
+
+    private mapToJob(data: any): AtomJob {
+        if (data && typeof data.toJSON === "function") {
+            return AtomJob.create(data.toJSON());
+        }
+        return AtomJob.create(data);
+    }
+
     async saveJob(job: AtomJob | any): Promise<AtomJob> {
+        const persistedJob = AtomJob.create(job);
+        const results = await AtomJobModel.query().insert(persistedJob as Partial<AtomJobModel>);
+        if (!results) {
+            throw new AtomSchedulerError("Error saving job: " + persistedJob.name);
+        }
 
-        let results = await AtomJobModel.query().insert(job as Partial<AtomJobModel>);
-        if (results)
-            return this.getJob(results['name']);
-        throw new AtomSchedulerError("Error saving job: " + job.name);
-
+        const storedJob = await this.getJob(persistedJob.name);
+        if (!storedJob) {
+            throw new AtomSchedulerError("Error saving job: " + persistedJob.name);
+        }
+        return storedJob;
     }
 
     async updateJob(job: AtomJob | any): Promise<AtomJob> {
-        if (!await this.getJob(job.name)) {
+        if (!job || !job.name) {
+            throw new AtomSchedulerError("You can update only existing job. Missing job name.");
+        }
+        const existingJob = await this.getJob(job.name);
+        if (!existingJob) {
             throw new AtomSchedulerError("You can update only existing job. " + job.name + " doesn't exist.");
         }
-        return AtomJobModel.query().patch(job as Partial<AtomJobModel>).where('name', job.name).limit(1)
-            .then((numUpdated) => {
-                if (numUpdated)
-                    return this.getJob(job.name)
-                else
-                    throw new AtomSchedulerError("Error updating job: " + job.name);
-            })
-            .catch((err) => {
-                throw err;
-            });
 
+        const numUpdated = await AtomJobModel.query().patch(job as Partial<AtomJobModel>).where('name', job.name).limit(1);
+        if (!numUpdated) {
+            throw new AtomSchedulerError("Error updating job: " + job.name);
+        }
+
+        const updatedJob = await this.getJob(job.name);
+        if (!updatedJob) {
+            throw new AtomSchedulerError("Error updating job: " + job.name);
+        }
+        return updatedJob;
     }
+
     async deleteJob(jobName: string, force?: boolean): Promise<boolean> {
-        let jobExists: AtomJob = await this.getJob(jobName);
+        const jobExists = await this.getJob(jobName);
         if (!jobExists) {
             return Promise.resolve(false);
-        } else {
-            if (!force) {
-                //should be able to delete only unlocked
-                return Promise.resolve(Boolean(await AtomJobModel.query().delete().whereNull('schedulerId').where('name', jobName).limit(1)));
-            } else {
-                return Promise.resolve(Boolean(await AtomJobModel.query().delete().where('name', jobName).limit(1)));
-            }
-
         }
+
+        if (!force) {
+            return Promise.resolve(Boolean(await AtomJobModel.query().delete().whereNull('schedulerID').where('name', jobName).limit(1)));
+        }
+        return Promise.resolve(Boolean(await AtomJobModel.query().delete().where('name', jobName).limit(1)));
     }
 
-    async getJob(jobName: string): Promise<AtomJob> {
-        return AtomJobModel.query().where('name', jobName).limit(1).first()
-            .then((job) => {
-                if (job)
-                    return Promise.resolve(AtomJob.create(job));
-                else
-                    return Promise.resolve(undefined);
-            })
-            .catch((err) => {
-                throw err;
-            });
-
+    async getJob(jobName: string): Promise<AtomJob | undefined> {
+        const result = await AtomJobModel.query().where('name', jobName).limit(1).first();
+        if (!result) {
+            return undefined;
+        }
+        return this.mapToJob(result);
     }
 
-    async getAllJobs(conditions?: { field: string, operator?: string, value: string }[]): Promise<AtomJob[]> {
+    async getAllJobs(conditions?: AtomJobCondition[]): Promise<AtomJob[]> {
         return AtomJobModel.query()
             .where((builder) => {
-                if (conditions)
+                if (conditions) {
                     conditions.forEach(condition => {
                         if (condition.operator) {
-                            builder=builder.where(condition.field, condition.operator, condition.value);
+                            builder = builder.where(condition.field, condition.operator, condition.value);
                         } else {
-                            builder=builder.where(condition.field, condition.value);
+                            builder = builder.where(condition.field, condition.value);
                         }
                     });
+                }
                 return builder;
             })
             .then((results) => {
-                let jobs: AtomJob[] = [];
-                results.forEach((value, index) => {
-                    jobs.push(AtomJob.create(value));
-                });
-                return Promise.resolve(jobs);
+                return Promise.resolve(results.map((value) => this.mapToJob(value)));
             })
             .catch((err) => {
-                console.log(err);
                 throw err;
             });
-
     }
 
 }

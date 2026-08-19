@@ -8,7 +8,7 @@ let JOBS: Map<string, AtomJob>;
 let DBMock: AtomDBAdapter = {
 
     deleteJob(jobName: string, force?: boolean): Promise<boolean> {
-        return null;
+        return Promise.resolve(false);
     },
     saveJob(job: AtomJob): Promise<AtomJob> {
         JOBS.set(job.name, job);
@@ -58,7 +58,7 @@ describe("Scheduler", () => {
         expect(job.name).toEqual("JonBame");
         expect(DBMock.saveJob).toHaveBeenCalled();
     });
-    it("should define new job", async (done) => {
+    it("should define new job", async () => {
         try {
             await scheduler.defineJob(
                 "A1",
@@ -80,9 +80,8 @@ describe("Scheduler", () => {
         expect(job.name).toEqual("A1");
         expect(scheduler.jobDefinitions.has("A1"))
         expect(DBMock.saveJob).toHaveBeenCalled();
-        done();
     });
-    it("should be able to block and unblock", async (done) => {
+    it("should be able to block and unblock", async () => {
         let job1 = await scheduler.createJob(job1Name, 'tomorrow');
         let job2 = await scheduler.createJob(job2Name, 'tomorrow');
         expect(await scheduler.isJobLocked(job1Name)).toBeFalsy();
@@ -91,29 +90,44 @@ describe("Scheduler", () => {
         expect((await scheduler.isJobLocked(job1Name))).toBeTruthy();
         await scheduler.unlockJob(job1Name);
         expect((await scheduler.isJobLocked(job1Name))).toBeFalsy();
-        done();
     });
-    it("should list all jobs", async (done) => {
+    it("should list all jobs", async () => {
         let job = await scheduler.createJob("L1", "sunday night");
         let job2 = await scheduler.createJob("L2", "sunday night");
         let job3 = await scheduler.createJob("L3", "sunday night");
         let job4 = await scheduler.createJob("L4", "sunday night");
         expect((await scheduler.getAllJobs()).length).toBe(4);
-        done();
     });
-    it("should getNextJob", async (done) => {
+    it("should not persist transient job state by default", async () => {
+        let updateJobSpy = spyOn(DBMock, "updateJob").and.callFake((job) => Promise.resolve(job));
+        let job = new AtomJob("TransientStateJob", "tomorrow");
+        job.schedulerID = scheduler.ID;
+        job.status = AtomJobStatus.Pending;
+        job.started = new Date();
+        job.finished = new Date();
+        job.timeElapsed = 100;
+
+        await scheduler.updateJob(job);
+
+        let persistedJob = updateJobSpy.calls.mostRecent().args[0];
+        expect(persistedJob).not.toBe(job);
+        expect(persistedJob.schedulerID).toBeUndefined();
+        expect(persistedJob.status).toBeUndefined();
+        expect(persistedJob.started).toBeUndefined();
+        expect(persistedJob.finished).toBeUndefined();
+        expect(persistedJob.timeElapsed).toBeUndefined();
+        expect(job.schedulerID).toBe(scheduler.ID);
+    });
+    it("should getNextJob", async () => {
         let job = await scheduler.createJob("L1", "sunday night",{});
         let job2 = await scheduler.createJob("L2", "sunday night",{});
         let job3 = await scheduler.createJob("L3", "yesterday",{});
         await scheduler.defineJob("L3",job=>Promise.resolve(true),{});
         let job4 = await scheduler.createJob("L4", "sunday night");
-        scheduler.getNextJob().then((job) => {
-            expect(job.name).toBe(job3.name);
-            done();
-        });
+        let nextJob = await scheduler.getNextJob();
+        expect(nextJob.name).toBe(job3.name);
     });
-    it("should do active job", async (done) => {
-        done();
+    it("should do active job", () => {
     });
 
     describe("Verbose logging", () => {
@@ -126,21 +140,30 @@ describe("Scheduler", () => {
             verboseScheduler = new AtomScheduler(DBMock, true);
         });
 
-        it("should log when verbose is enabled", () => {
-            verboseScheduler.start();
-            expect(consoleSpy).toHaveBeenCalledWith(jasmine.stringMatching(/\[AtomScheduler.*\] Scheduler started/));
+        afterEach(async function () {
+            if (verboseScheduler && verboseScheduler.hasStarted()) {
+                await verboseScheduler.stop();
+            }
         });
 
-        it("should not log when verbose is disabled", () => {
+        it("should log when verbose is enabled", async () => {
+            verboseScheduler.start();
+            expect(consoleSpy).toHaveBeenCalledWith(jasmine.stringMatching(/\[AtomScheduler.*\] Scheduler started/));
+            await verboseScheduler.stop();
+        });
+
+        it("should not log when verbose is disabled", async () => {
             let nonVerboseScheduler = new AtomScheduler(DBMock, false);
             nonVerboseScheduler.start();
             expect(consoleSpy).not.toHaveBeenCalled();
+            await nonVerboseScheduler.stop();
         });
 
-        it("should default to non-verbose when verbose parameter is not provided", () => {
+        it("should default to non-verbose when verbose parameter is not provided", async () => {
             let defaultScheduler = new AtomScheduler(DBMock);
             defaultScheduler.start();
             expect(consoleSpy).not.toHaveBeenCalled();
+            await defaultScheduler.stop();
         });
 
         it("should include job information in verbose logs", async () => {
