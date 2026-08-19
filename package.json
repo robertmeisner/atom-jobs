@@ -68,7 +68,7 @@
     "istanbul": "0.4.5",
     "jasmine": "^3.1.0",
     "jasmine-ts": "^0.4.0",
-    "nyc": "17.1.0",
+    "nyc": "18.0.0",
     "shx": "^0.3.1",
     "standard-version": "^9.5.0",
     "typedoc": "^0.28.14",
