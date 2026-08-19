@@ -62,7 +62,7 @@
     "@types/jasmine": "^2.8.8",
     "@types/mysql": "2.15.27",
     "@types/node": "24.10.0",
-    "coveralls-next": "6.0.1",
+    "coveralls-next": "6.0.2",
     "cross-env": "5.2.0",
     "dotenv": "6.0.0",
     "istanbul": "0.4.5",
@@ -71,9 +71,21 @@
     "nyc": "18.0.0",
     "shx": "^0.3.1",
     "standard-version": "^9.5.0",
+    "ts-node": "10.9.2",
     "typedoc": "^0.28.14",
     "typescript": "5.9.3",
-    "ts-node": "10.9.2",
-    "typescript-eslint-parser": "16.0.1"
+    "typescript-eslint-parser": "18.0.0"
+  },
+  "overrides": {
+    "coveralls-next": {
+      "js-yaml": "4.3.1"
+    },
+    "typescript-eslint-parser": {
+      "semver": "5.7.2"
+    }
+  },
+  "resolutions": {
+    "typescript-eslint-parser/semver": "5.7.2",
+    "coveralls-next/js-yaml": "4.3.1"
   }
 }
