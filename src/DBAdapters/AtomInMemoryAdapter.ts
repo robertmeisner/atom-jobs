@@ -33,8 +33,12 @@ const conditionMatches = (job: AtomJob, condition: AtomJobCondition): boolean =>
         return left <= right;
     }
     if (operator === "like") {
-        const pattern = String(condition.value).replace(/%/g, "");
-        return String(job[condition.field]).indexOf(pattern) >= 0;
+        const pattern = String(condition.value)
+            .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+            .replace(/%/g, ".*")
+            .replace(/_/g, ".");
+        const matcher = new RegExp("^" + pattern + "$");
+        return matcher.test(String(job[condition.field]));
     }
 
     throw new AtomSchedulerError("Unsupported condition operator: " + condition.operator);

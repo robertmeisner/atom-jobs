@@ -53,6 +53,7 @@ export class AtomScheduler {
     private started = false;
     private timer: any;
     private processingTick = false;
+    private activeJobFinalization?: Promise<void>;
     private static instance: AtomScheduler;
 
     /// EVENTS
@@ -157,9 +158,7 @@ export class AtomScheduler {
                 }
 
                 const cancelToken: AtomJobCancellationToken = {
-                    cancel: () => {
-                        throw new AtomSchedulerError("Stopped Job " + jobName);
-                    }
+                    cancel: () => undefined
                 };
                 this.jobDefinitions.set(jobName, { func, data: data || {}, cancelToken });
                 return Promise.resolve(job);
@@ -297,7 +296,9 @@ export class AtomScheduler {
             } catch (error) {
                 this.verboseLog("Job failed with error: " + error, this.activeJob);
             } finally {
-                await this.afterJobFinished();
+                this.activeJobFinalization = this.afterJobFinished();
+                await this.activeJobFinalization;
+                this.activeJobFinalization = undefined;
             }
         } finally {
             this.processingTick = false;
@@ -343,7 +344,11 @@ export class AtomScheduler {
         }
 
         if (this.activeJob && this.activeJob.status === AtomJobStatus.Pending && this.jobDefinitions.has(this.activeJob.name)) {
-            this.jobDefinitions.get(this.activeJob.name).cancelToken.cancel();
+            try {
+                this.jobDefinitions.get(this.activeJob.name).cancelToken.cancel();
+            } catch (error) {
+                this.verboseLog("Cancel handler threw during stop for " + this.activeJob.name + ": " + error, this.activeJob);
+            }
         }
 
         if (this.activeJobDoPromise) {
@@ -352,6 +357,11 @@ export class AtomScheduler {
             } catch (error) {
                 this.verboseLog("Active job completed with error during stop: " + error);
             }
+        }
+
+        if (this.activeJobFinalization) {
+            await this.activeJobFinalization;
+            this.activeJobFinalization = undefined;
         }
 
         if (this.activeJob) {
