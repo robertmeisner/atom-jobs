@@ -63,6 +63,38 @@ describe("Job", () => {
         expect(job2.finished).toBeDefined();
         expect(job2.timeElapsed).toBeGreaterThanOrEqual(0);
     });
+    it("should persist structured error details", async () => {
+        const error: any = new Error("Unexpected failure");
+        error.code = "E_TEST";
+
+        await job2.perform(() => {
+            throw error;
+        }, {}, { cancel: null }).catch(() => undefined);
+
+        const persistedError = JSON.parse(job2.lastErrorJSON);
+        expect(persistedError.name).toBe("Error");
+        expect(persistedError.message).toBe("Unexpected failure");
+        expect(persistedError.stack).toContain("Error: Unexpected failure");
+        expect(persistedError.code).toBe("E_TEST");
+    });
+
+    it("should serialize circular error details without masking the failure", async () => {
+        const error: any = new Error("Circular failure");
+        error.context = error;
+
+        await job2.perform(() => Promise.reject(error), {}, { cancel: null }).catch(() => undefined);
+
+        const persistedError = JSON.parse(job2.lastErrorJSON);
+        expect(persistedError.name).toBe("Error");
+        expect(persistedError.message).toBe("Circular failure");
+    });
+
+    it("should persist primitive rejection values", async () => {
+        await job2.perform(() => Promise.reject("bad input"), {}, { cancel: null }).catch(() => undefined);
+
+        expect(JSON.parse(job2.lastErrorJSON)).toBe("bad input");
+    });
+
     it("shouldn't perform future job", async () => {
         await job.perform((job, data, cancelToken): Promise<boolean> => {
             return Promise.resolve(true);

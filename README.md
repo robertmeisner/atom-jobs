@@ -72,6 +72,8 @@ Schema: `src/DBAdapters/schema/MySQL.sql`
 
 Non-recurring jobs (`isRecurring: false`) run once and stay finished.
 
+Failed jobs retain structured diagnostic details in `lastErrorJSON`, including the error name, message, stack, and enumerable fields when available.
+
 ## Events
 
 - `scheduler.jobStarted.on(handler)`

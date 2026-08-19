@@ -1,6 +1,31 @@
 import { AtomSchedulerError } from "./AtomSchedulerError";
 //import { date } from "date.js"; 
-var chrono = require('chrono-node');
+var chrono = require("chrono-node");
+
+const serializeError = (error: any): string => {
+    if (error instanceof Error) {
+        const serialized: any = {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        };
+        Object.keys(error).forEach((key) => {
+            serialized[key] = error[key];
+        });
+        try {
+            return JSON.stringify(serialized);
+        } catch (serializationError) {
+            return JSON.stringify({ name: error.name, message: error.message });
+        }
+    }
+
+    try {
+        const serialized = JSON.stringify(error);
+        return serialized === undefined ? JSON.stringify(String(error)) : serialized;
+    } catch (serializationError) {
+        return JSON.stringify({ name: "Error", message: String(error) });
+    }
+};
 
 export enum AtomJobStatus {
     Stopped = "Stopped",
@@ -116,7 +141,7 @@ export class AtomJob {
             } else {
                 this.status = AtomJobStatus.Failed;
             }
-            this.lastErrorJSON = JSON.stringify(error);
+            this.lastErrorJSON = serializeError(error);
             throw error;
         } finally {
             this.finished = new Date();
