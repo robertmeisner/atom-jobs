@@ -28,6 +28,8 @@ process.once("SIGTERM", async () => {
 
 When stopping, the scheduler clears its polling timer. If a pending job is active, it requests cancellation, waits for the handler and job finalization, and then releases the job lock. Handlers should cooperate with the cancellation token when their work supports cancellation.
 
+A timeout also requests cancellation through the handler's cancellation token. This is cooperative: a handler that ignores the token may continue running after the scheduler records `Timeout`, so external side effects should be safe to repeat.
+
 If an in-flight tick is still selecting a job when shutdown begins, it will not start new work; any lock acquired by that tick is released.
 
 ## Job lifecycle
