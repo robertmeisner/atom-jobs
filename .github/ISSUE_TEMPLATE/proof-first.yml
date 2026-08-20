@@ -1,0 +1,108 @@
+name: Proof-first backlog item
+description: Propose a feature, bug fix, reliability improvement, or discovery item with evidence and a reproducible proof plan.
+title: "[Proof] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every roadmap item must identify a real problem, define how it will be tested, and include a reproducible pilot. Use Discovery when the implementation should not begin until the pilot establishes demand or semantics.
+  - type: dropdown
+    id: work_type
+    attributes:
+      label: Work type
+      description: Select the kind of work being proposed.
+      options:
+        - Feature
+        - Bug fix
+        - Reliability
+        - Security
+        - Documentation
+        - Discovery
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user, operator, maintainer, or agent problem does this solve?
+      placeholder: Describe the concrete failure or friction.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Link the issue, reproduction, user report, code path, benchmark, or other evidence supporting the problem.
+      placeholder: Include links and observed behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis and success metric
+      description: State what should improve and how success will be measured.
+      placeholder: If implemented, this should improve ... measured by ...
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: Describe the smallest complete change and the public behavior it affects.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions that must be true before the Issue can close.
+      placeholder: |
+        - ...
+        - ...
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Automated test plan
+      description: Name the regression, unit, integration, build, or compatibility checks that will protect this behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: pilot
+    attributes:
+      label: Reproducible pilot
+      description: Give exact steps and workload inputs for proving practical value. Record results in the Issue or linked PR before closing.
+      placeholder: |
+        Command or sample workload:
+        Expected observation:
+        Result to record:
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and risks
+      description: Explain API, schema, dependency, runtime, migration, or operational risks.
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: State what this Issue deliberately does not include.
+    validations:
+      required: true
+  - type: checkboxes
+    id: readiness
+    attributes:
+      label: Planning checklist
+      options:
+        - label: I searched existing Issues and am not duplicating completed or open work.
+          required: true
+        - label: The acceptance criteria include automated tests.
+          required: true
+        - label: The pilot is reproducible without relying on artificial engagement or star manipulation.
+          required: true
+        - label: The Issue will link its implementation PR and proof results before completion.
+          required: true
