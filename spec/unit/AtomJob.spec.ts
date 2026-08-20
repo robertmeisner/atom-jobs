@@ -95,6 +95,60 @@ describe("Job", () => {
         expect(JSON.parse(job2.lastErrorJSON)).toBe("bad input");
     });
 
+    it("should retry ordinary failures with a bounded backoff", async () => {
+        let attempts = 0;
+        const retryingJob = new AtomJob("RetryingJob", "yesterday", {}, {
+            retry: { maxAttempts: 3, backoff: 1 }
+        });
+
+        const result = await retryingJob.perform(() => {
+            attempts++;
+            if (attempts < 3) {
+                throw new Error("Temporary failure");
+            }
+            return Promise.resolve("ok");
+        });
+
+        expect(result).toBe("ok");
+        expect(attempts).toBe(3);
+        expect(retryingJob.attempts).toBe(3);
+        expect(retryingJob.status).toBe(AtomJobStatus.Finished);
+    });
+
+    it("should retain the final failure after retry exhaustion", async () => {
+        let attempts = 0;
+        const retryingJob = new AtomJob("ExhaustedJob", "yesterday", {}, {
+            retry: { maxAttempts: 3, backoff: 1 }
+        });
+
+        await retryingJob.perform(() => {
+            attempts++;
+            throw new Error("Failure " + attempts);
+        }).catch(() => undefined);
+
+        expect(attempts).toBe(3);
+        expect(retryingJob.attempts).toBe(3);
+        expect(retryingJob.status).toBe(AtomJobStatus.Failed);
+        expect(JSON.parse(retryingJob.lastErrorJSON).message).toBe("Failure 3");
+    });
+
+    it("should cancel a retry backoff", async () => {
+        const token = { cancel: () => undefined };
+        const retryingJob = new AtomJob("CancellableRetryJob", "yesterday", {}, {
+            retry: { maxAttempts: 3, backoff: 100 }
+        });
+
+        const result = retryingJob.perform(() => Promise.reject(new Error("Temporary failure")), {}, token)
+            .catch(() => undefined);
+
+        await new Promise(resolve => setTimeout(resolve, 10));
+        token.cancel();
+        await result;
+
+        expect(retryingJob.attempts).toBe(1);
+        expect(retryingJob.status).toBe(AtomJobStatus.Stopped);
+    });
+
     it("shouldn't perform future job", async () => {
         await job.perform((job, data, cancelToken): Promise<boolean> => {
             return Promise.resolve(true);
