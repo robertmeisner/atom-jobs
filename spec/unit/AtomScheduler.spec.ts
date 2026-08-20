@@ -127,6 +127,30 @@ describe("Scheduler", () => {
         let nextJob = await scheduler.getNextJob();
         expect(nextJob.name).toBe(job3.name);
     });
+    it("should not start a job when stop races with job selection", async () => {
+        const job = new AtomJob("StoppedBeforeStartJob", "yesterday");
+        JOBS.set(job.name, job);
+        let handlerCalls = 0;
+        await scheduler.defineJob(job.name, () => {
+            handlerCalls++;
+            return Promise.resolve(true);
+        }, {});
+
+        let releaseJobs = (jobs: AtomJob[]) => undefined;
+        const jobsReady = new Promise<AtomJob[]>(resolve => {
+            releaseJobs = (jobs: AtomJob[]) => resolve(jobs);
+        });
+        spyOn(DBMock, "getAllJobs").and.returnValue(jobsReady);
+
+        scheduler.start();
+        await new Promise(resolve => setTimeout(resolve, 0));
+        await scheduler.stop();
+        releaseJobs([job]);
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        expect(handlerCalls).toBe(0);
+        expect(job.schedulerID).toBeNull();
+    });
     it("should do active job", () => {
     });
 

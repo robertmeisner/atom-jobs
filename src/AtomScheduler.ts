@@ -281,6 +281,12 @@ export class AtomScheduler {
 
         try {
             const nextJob = await this.getNextJob();
+            if (!this.started) {
+                if (nextJob && nextJob.schedulerID === this.ID) {
+                    await this.unlockJob(nextJob.name);
+                }
+                return;
+            }
             if (!nextJob) {
                 return;
             }
