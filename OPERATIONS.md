@@ -68,7 +68,8 @@ await scheduler.scheduleJob("report:daily", "in 5 minutes", {}, {
 });
 ```
 
-`maxAttempts` is the total number of attempts, including the initial execution. `backoff` is a linear delay in milliseconds before each retry. The default is one attempt, so existing jobs keep their current behavior. Only ordinary failures retry; timeouts and cancellations finish with their existing status. The maximum is 100 total attempts and a 1-hour delay per retry. The latest run's count is available as `job.attempts`, and an exhausted job retains its final error in `lastErrorJSON`.
+`maxAttempts` is the total number of attempts, including the initial execution. `backoff` is a linear delay in milliseconds before each retry. The default is one attempt, so existing jobs keep their current behavior. Only ordinary failures retry; timeouts and cancellations finish with their existing status.
+Timeout and stopped statuses are reserved for scheduler control errors; an ordinary handler `Error` remains `Failed` even when its message uses those words. The maximum is 100 total attempts and a 1-hour delay per retry. The latest run's count is available as `job.attempts`, and an exhausted job retains its final error in `lastErrorJSON`.
 
 Keep retries finite and use backoff values appropriate for the dependency being called. A retry does not make a handler idempotent; protect external side effects from duplication.
 
