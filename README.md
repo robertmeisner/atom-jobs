@@ -10,6 +10,13 @@ Lean persistent job scheduler for Node.js projects.
 - Built-in in-memory adapter for local apps and tests
 - MySQL adapter for persisted distributed workloads
 
+## When to choose atom-jobs
+
+Choose atom-jobs when you want a small scheduler embedded in a Node.js application, with human-readable schedules and durable job state in a MySQL database you already operate. It is designed to keep the application and storage model straightforward while still supporting retries, cancellation, timeouts, and adapter-based testing.
+
+Choose a queue platform such as [BullMQ](https://docs.bullmq.io/) when high-throughput queueing, many workers, priorities, or queue-oriented workflows are the primary requirement. Choose [Agenda](https://github.com/agenda/agenda) when its backend ecosystem or broader scheduling features are a better fit. Choose the in-memory adapter when losing scheduled state on process restart is acceptable.
+
+atom-jobs is a scheduler and persistence library, not a message broker, dashboard, or sandboxed worker runtime. Start with the [quick start](#quick-start-in-memory), then review the [operations guide](OPERATIONS.md) before using the MySQL adapter in production.
 ## Installation
 
 ```sh
