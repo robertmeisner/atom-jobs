@@ -172,6 +172,41 @@ describe("Job", () => {
         expect(job2.timeElapsed).toBeLessThan(jobTime);
 
     })
+    it("should request cancellation when a handler times out", async () => {
+        const timedJob = new AtomJob("TimedJob", "yesterday");
+        timedJob.timeout = 20;
+        let cancelCalls = 0;
+        const token: any = {
+            cancel: () => {
+                cancelCalls++;
+            }
+        };
+
+        await timedJob.perform(() => new Promise(() => undefined), {}, token)
+            .catch((error) => {
+                expect(error.message).toContain("Timed out in 20ms.");
+            });
+
+        expect(cancelCalls).toBe(1);
+        expect(timedJob.status).toBe(AtomJobStatus.Timeout);
+    });
+
+    it("should preserve timeout when cancellation fails", async () => {
+        const timedJob = new AtomJob("FailedCancellationTimedJob", "yesterday");
+        timedJob.timeout = 20;
+        const token: any = {
+            cancel: () => {
+                throw new Error("cancel failed");
+            }
+        };
+
+        await timedJob.perform(() => new Promise(() => undefined), {}, token)
+            .catch((error) => {
+                expect(error.message).toContain("Timed out in 20ms.");
+            });
+
+        expect(timedJob.status).toBe(AtomJobStatus.Timeout);
+    });
     it("should be cancelable", async () => {
         let token = { cancel: null };
         let p = job2.perform(((job, data, cancelToken): Promise<boolean> => {

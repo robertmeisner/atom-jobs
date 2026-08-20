@@ -197,6 +197,11 @@ export class AtomJob {
                 } catch (error) {
                     const message = error && error.message ? error.message : String(error);
                     if (message.startsWith("Timed")) {
+                        try {
+                            cancelToken.cancel();
+                        } catch (cancelError) {
+                            // Preserve the timeout when cooperative cancellation fails.
+                        }
                         this.status = AtomJobStatus.Timeout;
                     } else if (message.startsWith("Stopped")) {
                         this.status = AtomJobStatus.Stopped;
