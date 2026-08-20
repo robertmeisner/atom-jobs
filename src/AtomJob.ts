@@ -1,5 +1,4 @@
 import { AtomSchedulerError } from "./AtomSchedulerError";
-//import { date } from "date.js"; 
 var chrono = require("chrono-node");
 
 const serializeError = (error: any): string => {
@@ -27,6 +26,59 @@ const serializeError = (error: any): string => {
     }
 };
 
+const MAX_RETRY_ATTEMPTS = 100;
+const MAX_RETRY_BACKOFF = 60 * 60 * 1000;
+
+export interface AtomJobRetryOptions {
+    maxAttempts?: number;
+    backoff?: number;
+}
+
+const normalizeRetryOptions = (retry?: AtomJobRetryOptions): AtomJobRetryOptions | undefined => {
+    if (!retry) {
+        return undefined;
+    }
+
+    const maxAttempts = retry.maxAttempts === undefined ? 1 : retry.maxAttempts;
+    const backoff = retry.backoff === undefined ? 0 : retry.backoff;
+    if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > MAX_RETRY_ATTEMPTS) {
+        throw new AtomSchedulerError("Retry maxAttempts must be an integer between 1 and " + MAX_RETRY_ATTEMPTS + ".");
+    }
+    if (typeof backoff !== "number" || !isFinite(backoff) || backoff < 0 || backoff > MAX_RETRY_BACKOFF) {
+        throw new AtomSchedulerError("Retry backoff must be between 0 and " + MAX_RETRY_BACKOFF + " milliseconds.");
+    }
+
+    return { maxAttempts, backoff };
+};
+
+const waitForRetry = (ms: number, cancelToken: AtomJobCancellationToken): Promise<void> => {
+    if (ms <= 0) {
+        return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve, reject) => {
+        let timer: any;
+        let cancel: () => void;
+        const previousCancel = cancelToken.cancel;
+        const restore = () => {
+            if (cancelToken.cancel === cancel) {
+                cancelToken.cancel = previousCancel;
+            }
+        };
+
+        cancel = () => {
+            clearTimeout(timer);
+            restore();
+            reject(new AtomSchedulerError("Stopped by user."));
+        };
+        cancelToken.cancel = cancel;
+        timer = setTimeout(() => {
+            restore();
+            resolve();
+        }, ms);
+    });
+};
+
 export enum AtomJobStatus {
     Stopped = "Stopped",
     Finished = "Finished",
@@ -45,6 +97,7 @@ export interface AtomJobOptions {
     isRecurring?: boolean;
     dateMode?: AtomJobDateMode;
     timeout?: number;
+    retry?: AtomJobRetryOptions;
 }
 
 export interface AtomJobCancellationToken {
@@ -72,7 +125,7 @@ const promiseTimeout = function (ms: number, promise: Promise<any>): Promise<any
             throw error;
         }
     );
-}
+};
 
 export class AtomJob {
     public name: string;
@@ -91,12 +144,14 @@ export class AtomJob {
     public isRecurring = true;
     public dateMode: AtomJobDateMode;
     public metadata = "{}";
+    public retry?: AtomJobRetryOptions;
+    public attempts = 0;
     /**
      * AtomJob objects hold information about Scheduled Job state.
-     * @param name 
-     * @param when 
-     * @param metadataObject 
-     * @param options 
+     * @param name
+     * @param when
+     * @param metadataObject
+     * @param options
      */
     constructor(name: string, when: string, metadataObject: object = {}, options: AtomJobOptions = {}) {
         this.name = name;
@@ -105,6 +160,7 @@ export class AtomJob {
         this.dateMode = options.dateMode || AtomJobDateMode.AfterStarted;
         this.isRecurring = options.isRecurring === undefined ? true : options.isRecurring;
         this.timeout = options.timeout === undefined ? this.timeout : options.timeout;
+        this.retry = normalizeRetryOptions(options.retry);
         this.metadataObject = metadataObject;
         this.refreshPlannedOn();
     }
@@ -124,25 +180,45 @@ export class AtomJob {
             throw new AtomSchedulerError("Job " + this.name + " shouldn't run. It's status is: " + this.status + " and plannedOn: " + this.plannedOn);
         }
 
-        this.status = AtomJobStatus.Pending;
+        const maxAttempts = this.retry ? this.retry.maxAttempts : 1;
         this.started = new Date();
         this.timeElapsed = 0;
+        this.attempts = 0;
 
         try {
-            const response = await promiseTimeout(this.timeout, Promise.resolve().then(() => func(this, data, cancelToken)));
-            this.status = AtomJobStatus.Finished;
-            return response;
-        } catch (error) {
-            const message = error && error.message ? error.message : String(error);
-            if (message.startsWith("Timed")) {
-                this.status = AtomJobStatus.Timeout;
-            } else if (message.startsWith("Stopped")) {
-                this.status = AtomJobStatus.Stopped;
-            } else {
-                this.status = AtomJobStatus.Failed;
+            while (this.attempts < maxAttempts) {
+                this.attempts++;
+                this.status = AtomJobStatus.Pending;
+
+                try {
+                    const response = await promiseTimeout(this.timeout, Promise.resolve().then(() => func(this, data, cancelToken)));
+                    this.status = AtomJobStatus.Finished;
+                    return response;
+                } catch (error) {
+                    const message = error && error.message ? error.message : String(error);
+                    if (message.startsWith("Timed")) {
+                        this.status = AtomJobStatus.Timeout;
+                    } else if (message.startsWith("Stopped")) {
+                        this.status = AtomJobStatus.Stopped;
+                    } else {
+                        this.status = AtomJobStatus.Failed;
+                    }
+                    this.lastErrorJSON = serializeError(error);
+
+                    if (this.status !== AtomJobStatus.Failed || this.attempts >= maxAttempts) {
+                        throw error;
+                    }
+
+                    this.status = AtomJobStatus.Pending;
+                    try {
+                        await waitForRetry(this.retry.backoff * this.attempts, cancelToken);
+                    } catch (retryError) {
+                        this.status = AtomJobStatus.Stopped;
+                        this.lastErrorJSON = serializeError(retryError);
+                        throw retryError;
+                    }
+                }
             }
-            this.lastErrorJSON = serializeError(error);
-            throw error;
         } finally {
             this.finished = new Date();
             if (this.isRecurring) {
@@ -157,13 +233,17 @@ export class AtomJob {
         const job = new AtomJob(data.name, plannedString, {}, {
             isRecurring: data.isRecurring,
             dateMode: data.dateMode,
-            timeout: data.timeout
+            timeout: data.timeout,
+            retry: data.retry
         });
 
         Object.keys(data).forEach((key) => {
             job[key] = data[key];
         });
 
+        if (job.retry) {
+            job.retry = normalizeRetryOptions(job.retry);
+        }
         if (job.started && !(job.started instanceof Date)) {
             job.started = new Date(job.started);
         }
@@ -222,7 +302,9 @@ export class AtomJob {
             timeout: this.timeout,
             isRecurring: this.isRecurring,
             dateMode: this.dateMode,
-            metadata: this.metadata
+            metadata: this.metadata,
+            retry: this.retry,
+            attempts: this.attempts
         };
     }
 }

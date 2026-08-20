@@ -74,6 +74,8 @@ Non-recurring jobs (`isRecurring: false`) run once and stay finished.
 
 Failed jobs retain structured diagnostic details in `lastErrorJSON`, including the error name, message, stack, and enumerable fields when available.
 
+Jobs may opt into bounded retries with `retry: { maxAttempts, backoff }`. `maxAttempts` is the total number of attempts, `backoff` is a linear delay in milliseconds, and `attempts` reports the attempts used by the latest run. The default remains one attempt; timeouts and cancellations are not retried.
+
 ## Events
 
 - `scheduler.jobStarted.on(handler)`
