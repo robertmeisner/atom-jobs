@@ -95,6 +95,24 @@ describe("Job", () => {
         expect(JSON.parse(job2.lastErrorJSON)).toBe("bad input");
     });
 
+    it("should not classify ordinary errors by message prefix", async () => {
+        const messages = ["Timed out in 20ms.", "Stopped by user."];
+
+        for (let index = 0; index < messages.length; index++) {
+            let attempts = 0;
+            const messageJob = new AtomJob("MessageJob" + index, "yesterday", {}, {
+                retry: { maxAttempts: 2 }
+            });
+
+            await messageJob.perform(() => {
+                attempts++;
+                throw new Error(messages[index]);
+            }).catch(() => undefined);
+
+            expect(attempts).toBe(2);
+            expect(messageJob.status).toBe(AtomJobStatus.Failed);
+        }
+    });
     it("should retry ordinary failures with a bounded backoff", async () => {
         let attempts = 0;
         const retryingJob = new AtomJob("RetryingJob", "yesterday", {}, {
