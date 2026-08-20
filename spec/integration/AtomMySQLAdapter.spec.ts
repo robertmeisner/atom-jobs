@@ -58,4 +58,17 @@ integrationDescribe("MySQLAdapter", () => {
         expect((await adapter.getAllJobs([{ field: 'name', operator: 'like', value: 'CRAWLER:%' }])).length).toBe(2);
     });
 
+    it("should persist retry settings and attempts", async () => {
+        const retryingJob = await adapter.saveJob(new AtomJob(job1Name, "tomorrow", {}, {
+            retry: { maxAttempts: 3, backoff: 250 }
+        }));
+
+        await adapter.updateJob({ name: job1Name, attempts: 2 });
+        const loadedJob = await adapter.getJob(job1Name);
+
+        expect(loadedJob.retry.maxAttempts).toBe(3);
+        expect(loadedJob.retry.backoff).toBe(250);
+        expect(loadedJob.attempts).toBe(2);
+    });
+
 });
