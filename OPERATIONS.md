@@ -42,7 +42,7 @@ Use the scheduler events for application-level observability:
 
 ```typescript
 const unsubscribe = scheduler.jobFinished.on((job) => {
-  console.log(`\${job.name} finished with status \${job.status}`);
+  console.log(`${job.name} finished with status ${job.status}`);
 });
 
 // Call unsubscribe when the observer is no longer needed.

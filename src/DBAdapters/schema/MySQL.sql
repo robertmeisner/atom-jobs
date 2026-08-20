@@ -32,6 +32,8 @@ CREATE TABLE `atom_jobs` (
   `schedulerID` varchar(45) COLLATE utf8_unicode_ci DEFAULT NULL,
   `isRecurring` tinyint(1) NOT NULL DEFAULT '1',
   `metadata` text COLLATE utf8_unicode_ci,
+  `retry` text COLLATE utf8_unicode_ci,
+  `attempts` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `name_UNIQUE` (`name`)

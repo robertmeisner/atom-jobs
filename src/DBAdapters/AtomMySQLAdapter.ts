@@ -24,14 +24,38 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
     }
 
     private mapToJob(data: any): AtomJob {
-        if (data && typeof data.toJSON === "function") {
-            return AtomJob.create(data.toJSON());
+        const normalized = data && typeof data.toJSON === "function"
+            ? data.toJSON()
+            : Object.assign({}, data);
+
+        if (normalized.retry && typeof normalized.retry === "string") {
+            try {
+                normalized.retry = JSON.parse(normalized.retry);
+            } catch (error) {
+                throw new AtomSchedulerError("Job " + normalized.name + " has invalid retry JSON.");
+            }
         }
-        return AtomJob.create(data);
+
+        return AtomJob.create(normalized);
+    }
+
+    private toPersistence(job: AtomJob | any): any {
+        const persistedJob = AtomJob.create(job);
+        const data: any = persistedJob.toJSON();
+        data.retry = persistedJob.retry ? JSON.stringify(persistedJob.retry) : null;
+        return data;
+    }
+
+    private toPatch(job: AtomJob | any): any {
+        const patch = Object.assign({}, job);
+        if (patch.retry !== undefined && patch.retry !== null && typeof patch.retry !== "string") {
+            patch.retry = JSON.stringify(patch.retry);
+        }
+        return patch;
     }
 
     async saveJob(job: AtomJob | any): Promise<AtomJob> {
-        const persistedJob = AtomJob.create(job);
+        const persistedJob = this.toPersistence(job);
         const results = await AtomJobModel.query().insert(persistedJob as Partial<AtomJobModel>);
         if (!results) {
             throw new AtomSchedulerError("Error saving job: " + persistedJob.name);
@@ -53,7 +77,8 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
             throw new AtomSchedulerError("You can update only existing job. " + job.name + " doesn't exist.");
         }
 
-        const numUpdated = await AtomJobModel.query().patch(job as Partial<AtomJobModel>).where('name', job.name).limit(1);
+        const patch = this.toPatch(job);
+        const numUpdated = await AtomJobModel.query().patch(patch as Partial<AtomJobModel>).where('name', job.name).limit(1);
         if (!numUpdated) {
             throw new AtomSchedulerError("Error updating job: " + job.name);
         }
