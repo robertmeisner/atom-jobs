@@ -96,6 +96,12 @@ Local setup:
 
 By default, `npm test` runs unit specs and skips integration specs unless `RUN_INTEGRATION_TESTS=true`.
 
+## Documentation
+
+- [Operations guide](OPERATIONS.md) - lifecycle, shutdown, diagnostics, and MySQL troubleshooting
+- [Project Wiki](https://github.com/robertmeisner/atom-jobs/wiki) - architecture and maintained project guidance
+- [Open development issues](https://github.com/robertmeisner/atom-jobs/issues) - planned work and priorities
+
 ## Development
 
 ```sh
