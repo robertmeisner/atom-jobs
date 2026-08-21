@@ -79,7 +79,7 @@ jobs:
 
           main();
           EOF
-          "$GITHUB_WORKSPACE/node_modules/.bin/tsc"             --target es2018             --module commonjs             --moduleResolution node             --skipLibCheck             --outDir "$consumer/dist"             "$consumer/index.ts"
+          "$GITHUB_WORKSPACE/node_modules/.bin/tsc" --target es2018 --module commonjs --moduleResolution node --skipLibCheck --outDir "$consumer/dist" "$consumer/index.ts"
           node "$consumer/dist/index.js"
 
   mysql-integration:
@@ -112,6 +112,9 @@ jobs:
         run: npm run build
       - name: Apply MySQL schema
         run: mysql --protocol=TCP --host=127.0.0.1 --user=root test < src/DBAdapters/schema/MySQL.sql
+      - name: Configure legacy MySQL client authentication
+        run: |
+          mysql --protocol=TCP --host=127.0.0.1 --user=root test -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY ''; CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED WITH mysql_native_password BY ''; ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY ''; GRANT ALL PRIVILEGES ON test.* TO 'root'@'%'; FLUSH PRIVILEGES;"
       - name: Run integration tests
         env:
           RUN_INTEGRATION_TESTS: "true"
