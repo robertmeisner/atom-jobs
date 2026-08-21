@@ -78,7 +78,7 @@ Keep retries finite and use backoff values appropriate for the dependency being 
 1. Create the target database.
 2. Apply [`src/DBAdapters/schema/MySQL.sql`](src/DBAdapters/schema/MySQL.sql), changing the `USE test;` line to the target database.
 
-For existing MySQL deployments, apply the updated schema through your normal migration process before enabling persisted retries; it adds the `retry` and `attempts` columns.
+For existing MySQL deployments, apply the updated schema through your normal migration process before enabling persisted retries; it adds the `dateMode`, `retry`, and `attempts` columns.
 3. Configure `AtomMySQLAdapter` with the connection details required by the application.
 4. Start the scheduler only after the adapter and all job handlers are ready.
 5. Stop the scheduler before closing the MySQL connection.
