@@ -23,6 +23,7 @@ CREATE TABLE `atom_jobs` (
   `name` varchar(45) COLLATE utf8_unicode_ci DEFAULT NULL,
   `plannedOn` datetime DEFAULT NULL,
   `plannedString` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `dateMode` varchar(45) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'AfterStarted',
   `status` varchar(45) COLLATE utf8_unicode_ci NOT NULL,
   `started` datetime DEFAULT NULL,
   `finished` datetime DEFAULT NULL,
