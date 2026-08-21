@@ -1,0 +1,118 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality
+  cancel-in-progress: true
+
+jobs:
+  unit-and-package:
+    name: Build, unit tests, and package consumer
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version:
+          - 20.x
+          - 22.x
+          - 24.x
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Build
+        run: npm run build
+      - name: Run unit tests
+        run: npx jasmine-ts "./spec/unit/**/*.spec.ts"
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+      - name: Verify packed package in a clean consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_tarball="$(npm pack --silent)"
+          consumer="$(mktemp -d)"
+          trap 'rm -rf "$consumer" "$package_tarball"' EXIT
+          npm init --yes --prefix "$consumer"
+          npm install --ignore-scripts --prefix "$consumer" "$GITHUB_WORKSPACE/$package_tarball"
+          cat > "$consumer/index.ts" <<'EOF'
+          import { AtomInMemoryAdapter, AtomScheduler } from "atom-jobs";
+
+          async function main(): Promise<void> {
+              const scheduler = new AtomScheduler(new AtomInMemoryAdapter(), { tickTime: 10 });
+              await scheduler.scheduleJob("consumer-smoke", "now");
+              let completed = false;
+              await scheduler.registerJob("consumer-smoke", async () => {
+                  completed = true;
+              });
+
+              const finished = new Promise<void>((resolve, reject) => {
+                  const unsubscribe = scheduler.jobFinished.on(() => {
+                      unsubscribe();
+                      resolve();
+                  });
+                  setTimeout(() => reject(new Error("consumer job did not finish")), 2000);
+              });
+
+              scheduler.start();
+              await finished;
+              await scheduler.stop();
+
+              if (!completed) {
+                  throw new Error("consumer job did not execute");
+              }
+          }
+
+          main();
+          EOF
+          "$GITHUB_WORKSPACE/node_modules/.bin/tsc"             --target es2018             --module commonjs             --moduleResolution node             --skipLibCheck             --outDir "$consumer/dist"             "$consumer/index.ts"
+          node "$consumer/dist/index.js"
+
+  mysql-integration:
+    name: MySQL integration tests
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Build
+        run: npm run build
+      - name: Apply MySQL schema
+        run: mysql --protocol=TCP --host=127.0.0.1 --user=root test < src/DBAdapters/schema/MySQL.sql
+      - name: Run integration tests
+        env:
+          RUN_INTEGRATION_TESTS: "true"
+        run: npm test
