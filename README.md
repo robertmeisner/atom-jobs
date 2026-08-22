@@ -59,6 +59,10 @@ const adapter = new AtomMySQLAdapter({
 });
 
 const scheduler = new AtomScheduler(adapter, { tickTime: 2000 });
+
+// During application shutdown:
+await scheduler.stop();
+await adapter.close();
 ```
 
 Schema: `src/DBAdapters/schema/MySQL.sql`
