@@ -17,6 +17,7 @@ class AtomJobModel extends Model {
 
 export class AtomMySQLAdapter implements AtomDBAdapter {
     private knex: any;
+    private closePromise?: Promise<void>;
 
     constructor(connection: object) {
         this.knex = Knex(connection);
@@ -52,6 +53,13 @@ export class AtomMySQLAdapter implements AtomDBAdapter {
             patch.retry = JSON.stringify(patch.retry);
         }
         return patch;
+    }
+
+    close(): Promise<void> {
+        if (!this.closePromise) {
+            this.closePromise = Promise.resolve().then(() => this.knex.destroy());
+        }
+        return this.closePromise;
     }
 
     async saveJob(job: AtomJob | any): Promise<AtomJob> {

@@ -22,7 +22,7 @@ Stop the scheduler during application shutdown and await the returned promise be
 ```typescript
 process.once("SIGTERM", async () => {
   await scheduler.stop();
-  await closeDatabaseConnection();
+  await adapter.close();
 });
 ```
 
@@ -81,7 +81,7 @@ Keep retries finite and use backoff values appropriate for the dependency being 
 For existing MySQL deployments, apply the updated schema through your normal migration process before enabling persisted date modes or retries; it adds the `dateMode`, `retry`, and `attempts` columns.
 3. Configure `AtomMySQLAdapter` with the connection details required by the application.
 4. Start the scheduler only after the adapter and all job handlers are ready.
-5. Stop the scheduler before closing the MySQL connection.
+5. During shutdown, await `scheduler.stop()` and then `adapter.close()`.
 
 Keep connection credentials in environment variables or a secret manager. Do not commit them to the repository or include them in job metadata.
 

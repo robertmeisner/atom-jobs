@@ -15,6 +15,10 @@ integrationDescribe("MySQLAdapter", () => {
         await adapter.deleteJob('CRAWLER:' + job1Name, true);
         await adapter.deleteJob('CRAWLER:' + job2Name, true);
     });
+    afterAll(async () => {
+        await adapter.close();
+        await adapter.close();
+    });
     beforeEach(async () => {
         await clean();
     });
