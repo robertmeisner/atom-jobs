@@ -1,10 +1,10 @@
 name: Quality
 
 on:
-  pull_request:
   push:
-    branches:
-      - master
+    branches: [master]
+
+  workflow_dispatch:
 
 permissions:
   contents: read
