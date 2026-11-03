@@ -78,7 +78,7 @@
   },
   "overrides": {
     "coveralls-next": {
-      "js-yaml": "4.3.1"
+      "js-yaml": "4.3.2"
     },
     "typescript-eslint-parser": {
       "semver": "5.7.2"
@@ -86,6 +86,6 @@
   },
   "resolutions": {
     "typescript-eslint-parser/semver": "5.7.2",
-    "coveralls-next/js-yaml": "4.3.1"
+    "coveralls-next/js-yaml": "4.3.2"
   }
 }
