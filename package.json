@@ -82,10 +82,13 @@
     },
     "typescript-eslint-parser": {
       "semver": "5.7.2"
-    }
+    },
+    "glob@>=9.0.0 <14.0.2": "^14.0.3"
   },
   "resolutions": {
     "typescript-eslint-parser/semver": "5.7.2",
-    "coveralls-next/js-yaml": "4.3.2"
+    "coveralls-next/js-yaml": "4.3.2",
+    "nyc/glob": "^14.0.3",
+    "**/test-exclude/glob": "^14.0.3"
   }
 }
